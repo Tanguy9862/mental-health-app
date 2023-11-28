@@ -4,7 +4,7 @@ import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 from pages.nav import navbar
 
-GITHUB = 'https://github.com/tanguy9862'
+GITHUB = 'https://github.com/Tanguy9862/mental-health-app'
 CONTACT_ICON_WIDTH = 30
 
 header = html.Div(
