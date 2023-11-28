@@ -1,6 +1,6 @@
 import pandas as pd
 import plotly.express as px
-from utils.process_data import anxiety_prevalence, bipolar_prevalence, depressive_prevalence, eating_prevalence
+from utils.process_data import all_disorders_dataframes
 from utils.fig_config import BG_TRANSPARENT
 
 WITH_PADDING = dict(pad=15, t=0, b=0, l=0, r=0)
@@ -14,12 +14,13 @@ HOVERLABEL_TEMPLATE = dict(
 FONT_COLOR = '#5D5D5D'
 
 # PROCESSING DATA:
-concatenate_df = pd.concat([anxiety_prevalence, bipolar_prevalence], ignore_index=True)
-concatenate_df = pd.concat([concatenate_df, depressive_prevalence], ignore_index=True)
-concatenate_df = pd.concat([concatenate_df, eating_prevalence], ignore_index=True)
-
+concatenate_df = pd.concat(
+    [all_disorders_dataframes[disorder].prevalence_by_year for disorder in ['Anxiety', 'Bipolar', 'Depressive', 'Eating']],
+    ignore_index=True
+)
 prevalence_by_disorder = concatenate_df.groupby('Disorder')['Value'].mean().reset_index()
 
+# MAPPING FOR COLORS ASSOCIATED WITH DISORDER:
 colors = {
     'Anxiety': '#7FC6A4',
     'Depressive': '#FFD580',
@@ -85,6 +86,7 @@ disorder_bar_fig.update_traces(
 
 # PLOT LINE CHART (CHART ON HOVER):
 def plot_yearly_prevalence(df, line_color):
+    print(df)
     min_x, max_x = df['Year'].min(), df['Year'].max()
     min_y, max_y = df['Value'].min(), df['Value'].max()
 
@@ -113,8 +115,8 @@ def plot_yearly_prevalence(df, line_color):
 
 # MAP LABELS WITH CORRESPONDING DF:
 graph_functions = {
-    'Anxiety': lambda: plot_yearly_prevalence(anxiety_prevalence, colors['Anxiety']),
-    'Depressive': lambda: plot_yearly_prevalence(depressive_prevalence, colors['Depressive']),
-    'Bipolar': lambda: plot_yearly_prevalence(bipolar_prevalence, colors['Bipolar']),
-    'Eating': lambda: plot_yearly_prevalence(eating_prevalence, colors['Eating']),
+    'Anxiety': lambda: plot_yearly_prevalence(all_disorders_dataframes['Anxiety'].prevalence_by_year, colors['Anxiety']),
+    'Depressive': lambda: plot_yearly_prevalence(all_disorders_dataframes['Depressive'].prevalence_by_year, colors['Depressive']),
+    'Bipolar': lambda: plot_yearly_prevalence(all_disorders_dataframes['Bipolar'].prevalence_by_year, colors['Bipolar']),
+    'Eating': lambda: plot_yearly_prevalence(all_disorders_dataframes['Eating'].prevalence_by_year, colors['Eating']),
 }

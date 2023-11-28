@@ -1,6 +1,6 @@
 .graph-container {
-    width: 550px;
-    height: 550px;
+    width: 475px;
+    height: 475px;
 }
 
 @media (max-width: 767px) {

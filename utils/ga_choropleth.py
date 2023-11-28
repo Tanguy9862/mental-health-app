@@ -1,15 +1,14 @@
 import plotly.express as px
-from utils.process_data import anxiety_by_country
 from utils.fig_config import BG_TRANSPARENT
 
 
 # FIGURE:
-def create_choropleth_fig(df, color_scale=None):
+def create_choropleth_fig(df, color_scale):
     fig = px.choropleth(
         df,
         locations='Code',
         color='Value',
-        color_continuous_scale=px.colors.sequential.Greens,
+        color_continuous_scale=color_scale,
         custom_data=['Entity']
     )
 
@@ -52,10 +51,6 @@ def create_choropleth_fig(df, color_scale=None):
         marker_line_color='white',
         hovertemplate=None,
         hoverinfo='none'
-        # hovertemplate=(
-        #         '<b>%{customdata[0]} (%{customdata[1]})</b><br>' +
-        #         'Total number of Rockets launched: %{z}<br>'
-        # )
     )
 
     return fig
