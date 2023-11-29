@@ -22,10 +22,10 @@ prevalence_by_disorder = concatenate_df.groupby('Disorder')['Value'].mean().rese
 
 # MAPPING FOR COLORS ASSOCIATED WITH DISORDER:
 colors = {
-    'Anxiety': '#7FC6A4',
-    'Depressive': '#FFD580',
-    'Bipolar': '#FF6B6B',
-    'Eating': '#C5A3FF'
+    'Anxiety': all_disorders_dataframes['Anxiety'].pastel_color,
+    'Depressive': all_disorders_dataframes['Depressive'].pastel_color,
+    'Bipolar': all_disorders_dataframes['Bipolar'].pastel_color,
+    'Eating': all_disorders_dataframes['Eating'].pastel_color
 }
 
 prevalence_by_disorder['Color'] = prevalence_by_disorder['Disorder'].map(colors)
@@ -64,7 +64,7 @@ disorder_bar_fig.update_layout(
         # showspikes=False,
         zeroline=False,
         title=dict(
-            text='<i>Worldwide Prevalence Rates of Mental Health Conditions</i>',
+            text='<i>Average Worldwide Prevalence Rates of Mental Health Conditions</i>',
             font=dict(size=11),
             standoff=40
         )
@@ -86,7 +86,6 @@ disorder_bar_fig.update_traces(
 
 # PLOT LINE CHART (CHART ON HOVER):
 def plot_yearly_prevalence(df, line_color):
-    print(df)
     min_x, max_x = df['Year'].min(), df['Year'].max()
     min_y, max_y = df['Value'].min(), df['Value'].max()
 

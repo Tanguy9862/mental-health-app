@@ -23,29 +23,33 @@ def process_data(file_path, disorder_name):
 # Disorder Prevalence by country and year:
 DisorderDataframe = namedtuple(
     'DisorderDataframe',
-    ['disorder_name', 'prevalence_by_country', 'prevalence_by_year', 'color_scale']
+    ['disorder_name', 'prevalence_by_country', 'prevalence_by_year', 'pastel_color', 'color_scale']
 )
 
 anxiety_disorder = DisorderDataframe(
     'Anxiety',
     *[process_data(file_paths[0], 'Anxiety')[i] for i in range(2)],
+    '#7FC6A4',
     px.colors.sequential.Greens
 )
 
 bipolar_disorder = DisorderDataframe(
     'Bipolar',
     *[process_data(file_paths[1], 'Bipolar')[i] for i in range(2)],
+    '#FF6B6B',
     px.colors.sequential.Reds
 )
 
 depressive_disorder = DisorderDataframe(
     'Depressive',
     *[process_data(file_paths[2], 'Depressive')[i] for i in range(2)],
+    '#FFD580',
     px.colors.sequential.Oranges
 )
 eating_disorder = DisorderDataframe(
     'Eating',
     *[process_data(file_paths[3], 'Eating')[i] for i in range(2)],
+    '#C5A3FF',
     px.colors.sequential.Magenta
 )
 

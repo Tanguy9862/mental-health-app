@@ -7,7 +7,7 @@ import dash_extensions as de
 
 from utils.overview_figures import disorder_bar_fig, graph_functions, prevalence_by_disorder
 from utils.overview_accordion import disorders_accordion
-from utils.fig_config import FIG_CONFIG, BG_TRANSPARENT
+from utils.fig_config import FIG_CONFIG, BG_TRANSPARENT, MAIN_TITLE_COLOR
 
 url = 'https://lottie.host/179addf7-798c-43b2-b5a4-221f8e857fd2/aiK7CsYxLd.json'
 options = dict(loop=True, autoplay=True)
@@ -27,8 +27,8 @@ def estimate_case(estimate, disorder_name):
                 dmc.Group(
                     [
                         DashIconify(icon='fluent:people-team-16-regular', height=35,
-                                    color='#4e3a8e'),
-                        dmc.Title(f'{estimate}M', order=2, color='#4e3a8e')
+                                    color=MAIN_TITLE_COLOR),
+                        dmc.Title(f'{estimate}M', order=2, color=MAIN_TITLE_COLOR)
                     ],
                     position='center',
                     mb='lg',
@@ -52,7 +52,7 @@ layout = dmc.NotificationsProvider(
                                 dmc.Title(
                                     'Exploring the Impact of Demographic, Economic, and Geographic Factors on Mental '
                                     'Health Disorders',
-                                    color='#4e3a8e',
+                                    color=MAIN_TITLE_COLOR,
                                     align='justify',
                                     order=1
                                 ),
