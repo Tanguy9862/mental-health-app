@@ -9,9 +9,6 @@ from utils.overview_figures import disorder_bar_fig, graph_functions, prevalence
 from utils.overview_accordion import disorders_accordion
 from utils.fig_config import FIG_CONFIG, BG_TRANSPARENT, MAIN_TITLE_COLOR
 
-url = 'https://lottie.host/179addf7-798c-43b2-b5a4-221f8e857fd2/aiK7CsYxLd.json'
-options = dict(loop=True, autoplay=True)
-
 dash.register_page(
     __name__,
     path='/',

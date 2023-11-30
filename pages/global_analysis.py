@@ -1,17 +1,19 @@
 import dash
 import pandas as pd
-from dash import html, dcc, callback, Input, Output, State, clientside_callback, no_update, Patch
-from dash.exceptions import PreventUpdate
 import dash_mantine_components as dmc
+import dash_extensions as de
+from dash import html, dcc, callback, Input, Output, State, clientside_callback, no_update, Patch, ctx
+from dash.exceptions import PreventUpdate
 from dash_iconify import DashIconify
 
 from utils.process_data import all_disorders_dataframes
+from utils.ga_utils import calculate_slope, make_edit_icon, mapping_list_functions
 from utils.ga_choropleth import create_choropleth_fig
-from utils.fig_config import FIG_CONFIG, BG_TRANSPARENT, MAIN_TITLE_COLOR
+from utils.ga_heatmap import create_heatmap
+from utils.fig_config import FIG_CONFIG, BG_TRANSPARENT, MAIN_TITLE_COLOR, HIDE
 
-# anxiety_by_country = anxiety_disorder.prevalence_by_country.query("Year == 1990")
-# anxiety_by_country = anxiety_by_country.dropna(subset=['Code'])
-# print(anxiety_by_country)
+url = 'https://lottie.host/f2933ddb-a454-4e35-bea0-de15f496c6c3/tgIm6ZNww2.json'
+options = dict(loop=True, autoplay=True)
 
 CHOROPLETH_INTERVAL = 50
 SLIDER_YEAR_INCREMENT = 10
@@ -24,8 +26,9 @@ dash.register_page(
 
 
 def get_country_name(figure_data):
-    country_path = figure_data['points'][0]['customdata']
-    return country_path[0] if isinstance(country_path, list) else country_path
+    if figure_data:
+        country_path = figure_data['points'][0]['customdata']
+        return country_path[0] if isinstance(country_path, list) else country_path
 
 
 def create_country_title(text, id='', animation=None):
@@ -47,7 +50,7 @@ layout = html.Div(
                     [
                         dmc.Group(
                             [
-                                create_country_title(text='Exploring Mental Health Trends in'),
+                                create_country_title(text='Exploring Mental Health Trends in', id='base-title'),
                                 dmc.Group(
                                     [
                                         html.Div(id='country-title-container'),
@@ -68,7 +71,8 @@ layout = html.Div(
                                         'input': {
                                             'font-size': '1.5625rem',
                                             'color': '#4e3a8e',
-                                            'font-weight': 'bold'
+                                            'font-weight': 'bold',
+                                            'text-decoration': 'underline'
                                         },
                                         'item': {'font-size': '0.9rem'}
                                     },
@@ -78,26 +82,57 @@ layout = html.Div(
                             ],
                             position='left',
                             spacing=7
+                        ),
+                        dmc.Text(
+                            'Dive into specific categories to discover how location and age contribute to the '
+                            'prevalence various mental health disorders.',
+                            align='justify',
+                            color='#4B4B4B',
+                            mt='md'
                         )
                     ],
+
                     offsetLg=1,
                     lg=6
                 )
             ],
-            # style={'border': 'solid 2px blue'},
         ),
         dmc.Grid(
             [
                 dmc.Col(
                     [
-                        dmc.Container(dmc.Text('test'), id='left-container', px=0)
+                        dmc.Container(
+                            id='heatmap-container',
+                            px=0,
+                        )
                     ],
-                    # style={'border': 'solid 1px red'},
                     offsetLg=1,
                     lg=6
                 ),
                 dmc.Col(
                     [
+                        dmc.Group(
+                            [
+                                make_edit_icon(
+                                    icon='lucide:undo',
+                                    id='del-last-selected-country',
+                                    tooltip='Remove the last country added'
+                                ),
+                                dmc.ActionIcon(
+                                    DashIconify(icon='ph:play-pause-light', width=35),
+                                    id='stop-interval',
+                                    variant='transparent'
+                                ),
+                                make_edit_icon(
+                                    icon='fluent:delete-12-regular',
+                                    id='del-all-selected-country',
+                                    color='red',
+                                    tooltip='Clear all countries'
+                                )
+                            ],
+                            position='center',
+                            mb='xl'
+                        ),
                         dmc.Center(
                             [
                                 dmc.FloatingTooltip(
@@ -116,21 +151,25 @@ layout = html.Div(
                         ),
                         dmc.Container(
                             id='range-slider-container',
+                            children=[dmc.Slider(id='year-slider', style=HIDE)],
                             px=0,
                             style={
                                 'display': 'flex',
                                 'flex-direction': 'column',
                                 'align-items': 'center',
                             },
-                            mt=50
+                            mt=50,
                         )
                     ],
                     lg=5
                 )
-            ]
+            ],
+            mt=35,
+            mb=100
         ),
         dcc.Store(id='disorder-data'),
-        dcc.Store(id='filtered-data-on-year')
+        dcc.Store(id='filtered-data-on-year'),
+        dcc.Store(id='selected-countries', data=[])
     ],
     id='global-analysis-container',
     className='animate__animated animate__fadeIn animate__slow'
@@ -142,6 +181,9 @@ layout = html.Div(
     Input('select-disorder', 'value')
 )
 def update_selected_disorder_data(disorder_name):
+    """
+    Update data related to the disorder selected (anxiety, bipolar, ..)
+    """
     return all_disorders_dataframes[disorder_name].prevalence_by_country.to_dict('records')
 
 
@@ -152,6 +194,9 @@ def update_selected_disorder_data(disorder_name):
     prevent_initial_call=True
 )
 def update_year_slider(_, disorder_name):
+    """
+    Update the Year Slider related to the min and max year of a specific disorder
+    """
     disorder_df = all_disorders_dataframes[disorder_name].prevalence_by_country
     color = all_disorders_dataframes[disorder_name].pastel_color
     min_year, max_year = disorder_df['Year'].min(), disorder_df['Year'].max()
@@ -186,6 +231,9 @@ def update_year_slider(_, disorder_name):
     prevent_initial_call=True
 )
 def update_data_on_year(year_range, data):
+    """
+    Create a new subset from the main disorder data which is filtered on a specific year range
+    """
     df = pd.DataFrame(data)
     filtered_on_year = df.query("@year_range[0] <= Year <= @year_range[1]")
     filtered_on_year_grouped = filtered_on_year.groupby(['Entity', 'Code'])['Value'].mean().reset_index()
@@ -201,6 +249,9 @@ def update_data_on_year(year_range, data):
     prevent_initial_call=True
 )
 def update_choropleth_fig(data, disorder_name, figure):
+    """
+    Update the choropleth figure with disorder data filtered on a specif year range
+    """
     data_to_df = pd.DataFrame(data)
 
     if figure:
@@ -232,34 +283,59 @@ def update_choropleth_fig(data, disorder_name, figure):
 
 
 @callback(
-    Output('country-title-container', 'children'),
+    Output('selected-countries', 'data'),
     Input('choropleth-fig', 'clickData'),
+    Input('del-last-selected-country', 'n_clicks'),
+    Input('del-all-selected-country', 'n_clicks'),
+    State('selected-countries', 'data'),
     State('select-disorder', 'value'),
     prevent_initial_call=True
 )
-def update_main_title(data, disorder_name):
-    if data:
-        country = get_country_name(data)
-        return create_country_title(country, 'country-title-container', 'animate__animated animate__flash')
+def update_selected_countries(choropleth_data, _1, _2, current_countries, disorder_name):
+    """
+    Update the dcc.Store which contains the list of all selected countries
+    """
+    input_id = ctx.triggered_id
 
-    random_country = all_disorders_dataframes[disorder_name].prevalence_by_country['Entity'].sample(n=1).iloc[0]
-    return create_country_title(random_country, 'country-title-container', 'animate__animated animate__flash')
+    # Get country on choropleth click
+    if choropleth_data and input_id == 'choropleth-fig':
+        new_country = get_country_name(choropleth_data)
+        if new_country not in current_countries:
+            current_countries.append(new_country)
+
+    # Delete the last country selected or clear all the countries
+    elif input_id.startswith('del'):
+        if current_countries:
+            list_modifier = mapping_list_functions[input_id]
+            list_modifier(current_countries)
+
+    # Get a random country (initial load):
+    else:
+        new_country = all_disorders_dataframes[disorder_name].prevalence_by_country['Entity'].sample(n=1).iloc[0]
+        current_countries.append(new_country)
+
+    return current_countries
 
 
 @callback(
-    Output('left-container', 'children'),
-    Input('country-title-container', 'children'),
-    Input('choropleth-fig', 'clickData'),
+    Output('country-title-container', 'children'),
+    Output('base-title', 'children'),
+    Input('selected-countries', 'data'),
     prevent_initial_call=True
 )
-def update_left_content(initial_country_title, data):
-    if data:
-        country = get_country_name(data)
-        print(f'new country: {country}')
-    else:
-        print(f'initial country title: {initial_country_title}')
+def update_country_title(selected_countries: list):
+    """
+    Update the main title based on the last selected country from the user
+    """
 
-    return no_update
+    if selected_countries:
+        return create_country_title(
+            selected_countries[-1],
+            'country-title-container',
+            'animate__animated animate__flash'
+        ), 'Exploring Mental Health Trends in'
+
+    return None, 'Select a Country to Explore Mental Health Trends'
 
 
 @callback(
@@ -295,6 +371,58 @@ def update_choropleth_tooltip(data, disorder_name, year_range):
         ), 'rgba(11, 6, 81, 0.8)'
 
     raise PreventUpdate
+
+
+@callback(
+    Output('heatmap-container', 'children'),
+    Input('selected-countries', 'data'),
+    Input('disorder-data', 'data'),
+    Input('year-slider', 'value'),
+    prevent_initial_call=True
+)
+def update_left_figs(selected_countries, disorder_data, year_range):
+    input_id = ctx.triggered_id
+
+    if input_id in ['disorder-data', 'year-slider', 'selected-countries']:
+        countries = selected_countries
+        if not countries:
+            return dmc.Container(children=[de.Lottie(url=url, options=options)], px=0, size=375)
+
+        # General features
+        df = pd.DataFrame(disorder_data)
+        year_start, year_end = year_range[0], year_range[1]
+        disorder_name = df.iloc[0]['Disorder']
+
+        # Filter the data based on countries selection and year range
+        filtered_df = df.query('Entity in @countries and Year >= @year_start and Year <= @year_end')
+        slope_by_country = filtered_df.groupby('Entity')['Value'].apply(calculate_slope)
+        sorted_countries = slope_by_country.sort_values(ascending=False).index
+
+        # Dataframe management for plotting to heatmap
+        df_pivot = filtered_df.pivot(index='Entity', columns='Year', values='Value')
+        df_normalized = df_pivot.apply(lambda x: (x - x.min()) / (x.max() - x.min()), axis=1).reindex(sorted_countries)
+
+        return dcc.Graph(
+            figure=create_heatmap(
+                df=df_normalized,
+                disorder_name=disorder_name,
+                countries=countries,
+            ),
+            config=FIG_CONFIG
+        )
+
+    return no_update
+
+
+@callback(
+    Output('choropleth-interval', 'max_intervals'),
+    Input('stop-interval', 'n_clicks'),
+    prevent_initial_call=True
+)
+def stop_animate_choropleth(n):
+    if n % 2:
+        return 0
+    return -1
 
 
 clientside_callback(
