@@ -3,7 +3,7 @@ from utils.process_data import all_disorders_dataframes
 from utils.fig_config import BG_TRANSPARENT, HOVERLABEL_TEMPLATE
 
 
-def create_heatmap(df, countries, disorder_name):
+def create_heatmap(df, disorder_name, entities, grouping_field):
     fig = px.imshow(
         df,
         color_continuous_scale=all_disorders_dataframes[disorder_name].color_scale,
@@ -12,8 +12,15 @@ def create_heatmap(df, countries, disorder_name):
     )
 
     fig.update_layout(
-        height=60*len(countries),
-        xaxis=dict(title=None, showspikes=False),
+        height=60*len(entities),
+        xaxis=dict(
+            title=dict(
+                text=f'<i>Global Heatmap of {disorder_name} Disorder Prevalence</i>',
+                font=dict(size=11),
+                standoff=40
+            ),
+            showspikes=False
+        ),
         yaxis=dict(title=None),
         margin=dict(pad=7, t=0, b=0, l=0, r=0),
         paper_bgcolor=BG_TRANSPARENT,
@@ -25,7 +32,7 @@ def create_heatmap(df, countries, disorder_name):
         )
     )
 
-    hovertemplate = "Country: %{y}<br>Year: %{x}<br>Normalized prevalence: %{z}<extra></extra>"
+    hovertemplate = f"{grouping_field}: %{{y}}<br>Year: %{{x}}<br>Normalized prevalence: %{{z}}<extra></extra>"
     for trace in fig.data:
         trace.hovertemplate = hovertemplate
 

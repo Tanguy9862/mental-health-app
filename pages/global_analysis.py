@@ -10,6 +10,7 @@ from utils.process_data import all_disorders_dataframes
 from utils.ga_utils import calculate_slope, make_edit_icon, mapping_list_functions
 from utils.ga_choropleth import create_choropleth_fig
 from utils.ga_heatmap import create_heatmap
+from utils.ga_tabs_heatmap import tabs_heatmap
 from utils.fig_config import FIG_CONFIG, BG_TRANSPARENT, MAIN_TITLE_COLOR, HIDE
 
 url = 'https://lottie.host/f2933ddb-a454-4e35-bea0-de15f496c6c3/tgIm6ZNww2.json'
@@ -77,14 +78,14 @@ layout = html.Div(
                                         'item': {'font-size': '0.9rem'}
                                     },
                                     persistence=True,
-                                    persistence_type='memory'
+                                    persistence_type='session'
                                 ),
                             ],
                             position='left',
                             spacing=7
                         ),
                         dmc.Text(
-                            'Dive into specific categories to discover how location and age contribute to the '
+                            'Dive into specific categories to discover how location, age and sex contribute to the '
                             'prevalence various mental health disorders.',
                             align='justify',
                             color='#4B4B4B',
@@ -101,9 +102,19 @@ layout = html.Div(
             [
                 dmc.Col(
                     [
-                        dmc.Container(
-                            id='heatmap-container',
-                            px=0,
+                        dmc.Tabs(
+                            [
+                                dmc.TabsList(
+                                    [
+                                        dmc.Tab('Country and Continent Trends', value='heatmap'),
+                                        dmc.Tab('Age and Gender Insights', value='sankey')
+                                    ]
+                                ),
+                                dmc.TabsPanel(tabs_heatmap, value='heatmap'),
+                                dmc.TabsPanel(dmc.Text('Sankey'), value='sankey')
+                            ],
+                            value='heatmap',
+                            color='grape'
                         )
                     ],
                     offsetLg=1,
@@ -169,7 +180,7 @@ layout = html.Div(
         ),
         dcc.Store(id='disorder-data'),
         dcc.Store(id='filtered-data-on-year'),
-        dcc.Store(id='selected-countries', data=[])
+        dcc.Store(id='selected-countries', data=[], storage_type='session')
     ],
     id='global-analysis-container',
     className='animate__animated animate__fadeIn animate__slow'
@@ -211,7 +222,7 @@ def update_year_slider(_, disorder_name):
             {'value': i, 'label': i} for i in range(min_year, max_year + 2, SLIDER_YEAR_INCREMENT)
         ],
         persistence=True,
-        persistence_type='memory',
+        persistence_type='session',
         color='white',
         style={'width': '50%'},
         styles={
@@ -304,13 +315,13 @@ def update_selected_countries(choropleth_data, _1, _2, current_countries, disord
             current_countries.append(new_country)
 
     # Delete the last country selected or clear all the countries
-    elif input_id.startswith('del'):
-        if current_countries:
-            list_modifier = mapping_list_functions[input_id]
-            list_modifier(current_countries)
+    elif input_id.startswith('del') and current_countries:
+        # if current_countries:
+        list_modifier = mapping_list_functions[input_id]
+        list_modifier(current_countries)
 
     # Get a random country (initial load):
-    else:
+    elif not current_countries:
         new_country = all_disorders_dataframes[disorder_name].prevalence_by_country['Entity'].sample(n=1).iloc[0]
         current_countries.append(new_country)
 
@@ -363,7 +374,7 @@ def update_choropleth_tooltip(data, disorder_name, year_range):
                     spacing='xs'
                 ),
                 dmc.Text(
-                    f'Avg. {disorder_name} Disorder Prevalence from {year_range[0]} to {year_range[1]}: '
+                    f'Avg. {disorder_name} Prevalence from {year_range[0]} to {year_range[1]}: '
                     f'{round(prevalence, 2)}%'
                 )
             ],
@@ -378,40 +389,71 @@ def update_choropleth_tooltip(data, disorder_name, year_range):
     Input('selected-countries', 'data'),
     Input('disorder-data', 'data'),
     Input('year-slider', 'value'),
+    Input('switch-country-continent', 'checked'),
     prevent_initial_call=True
 )
-def update_left_figs(selected_countries, disorder_data, year_range):
+def update_heatmap_fig(selected_countries, disorder_data, year_range, switch_filter):
     input_id = ctx.triggered_id
 
-    if input_id in ['disorder-data', 'year-slider', 'selected-countries']:
+    if input_id in ['disorder-data', 'year-slider', 'selected-countries', 'switch-country-continent']:
         countries = selected_countries
         if not countries:
             return dmc.Container(children=[de.Lottie(url=url, options=options)], px=0, size=375)
+        elif not year_range:
+            return no_update
 
         # General features
         df = pd.DataFrame(disorder_data)
         year_start, year_end = year_range[0], year_range[1]
         disorder_name = df.iloc[0]['Disorder']
+        grouping_field = (switch_filter and 'Continent') or 'Entity'  # Column to use when grouping filtered_df
 
         # Filter the data based on countries selection and year range
         filtered_df = df.query('Entity in @countries and Year >= @year_start and Year <= @year_end')
-        slope_by_country = filtered_df.groupby('Entity')['Value'].apply(calculate_slope)
-        sorted_countries = slope_by_country.sort_values(ascending=False).index
 
-        # Dataframe management for plotting to heatmap
-        df_pivot = filtered_df.pivot(index='Entity', columns='Year', values='Value')
-        df_normalized = df_pivot.apply(lambda x: (x - x.min()) / (x.max() - x.min()), axis=1).reindex(sorted_countries)
+        # Grouping by Continent and Year to compute the Mean per Continent before computing the slope
+        if switch_filter:
+            filtered_df = filtered_df.groupby(['Continent', 'Year'])['Value'].mean().reset_index()
+
+        slope_by_entity = filtered_df.groupby(grouping_field)['Value'].apply(calculate_slope)
+        sorted_entities = slope_by_entity.sort_values(ascending=False).index
+
+        # Data management for plotting heatmap
+        df_pivot = filtered_df.pivot(index=grouping_field, columns='Year', values='Value')
+        df_normalized = df_pivot.apply(lambda x: (x - x.min()) / (x.max() - x.min()), axis=1).reindex(sorted_entities)
 
         return dcc.Graph(
             figure=create_heatmap(
                 df=df_normalized,
                 disorder_name=disorder_name,
-                countries=countries,
+                entities=sorted_entities,
+                grouping_field='Country' if grouping_field == 'Entity' else grouping_field
             ),
             config=FIG_CONFIG
         )
 
     return no_update
+
+
+@callback(
+    Output('switch-country-continent', 'disabled'),
+    Input('selected-countries', 'data'),
+    prevent_initial_call=True
+)
+def update_state_switcher(data):
+    if not data:
+        return True
+    return False
+
+
+@callback(
+    Output('data-drawer', 'opened'),
+    Input('about-data-management', 'n_clicks'),
+    State('data-drawer', 'opened'),
+    prevent_initial_call=True
+)
+def toggle_drawer(n, opened):
+    return not opened
 
 
 @callback(

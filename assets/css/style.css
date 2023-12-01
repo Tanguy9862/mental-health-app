@@ -2,3 +2,18 @@ body {
     /* background-color: #2B2626; */
     background-color: #f2f2f2;
 }
+
+h2 {
+    font-family: Verdana, sans-serif;
+    color: #4e3a8e
+}
+
+h3 {
+    color: #7159a3;
+    font-family: Verdana, sans-serif;
+}
+
+p {
+    color: #4B4B4B;
+    font-family: Helvetica, Arial, sans-serif;
+}

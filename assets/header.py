@@ -48,7 +48,7 @@ header = html.Div(
             )
         ],
         mt='md',
-        mb=50
+        mb=35
     )
 )
 
