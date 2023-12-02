@@ -13,17 +13,18 @@ file_paths = [
     f'{DATA_PATH}/eating-disorders-prevalence.csv',
 ]
 
+continent_dict = {
+    "NA": "North America",
+    "SA": "South America",
+    "AS": "Asia",
+    "AF": "Africa",
+    "OC": "Oceania",
+    "EU": "Europe",
+    "AQ": "Antarctica"
+}
+
 
 def get_continent_name(continent_code: str) -> str:
-    continent_dict = {
-        "NA": "North America",
-        "SA": "South America",
-        "AS": "Asia",
-        "AF": "Africa",
-        "OC": "Oceania",
-        "EU": "Europe",
-        "AQ": "Antarctica"
-    }
     return continent_dict[continent_code]
 
 

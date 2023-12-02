@@ -28,3 +28,9 @@ def make_edit_icon(icon, id, tooltip, color=None):
         transition='fade'
     )
 
+
+def filter_dataframe(df, entities, year_range, column_to_filter):
+    year_start, year_end = year_range
+    return df.query(f'{column_to_filter} in @entities and Year >= @year_start and Year <= @year_end')
+
+

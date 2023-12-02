@@ -2,6 +2,7 @@ from dash import html, dcc
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 
+
 tabs_heatmap = html.Div(
     [
         dmc.Drawer(
@@ -82,6 +83,12 @@ tabs_heatmap = html.Div(
             mb='lg',
             position='center'
         ),
-        dmc.Container(id='heatmap-container', px=0)
+        dmc.Container(id='heatmap-container', px=0),
+    ]
+)
+
+tabs_sankey = html.Div(
+    [
+        dmc.Container(id='sankey-container', px=0)
     ]
 )
