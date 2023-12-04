@@ -12,6 +12,7 @@ from utils.utils_config import FIG_CONFIG, BG_TRANSPARENT, MAIN_TITLE_COLOR
 dash.register_page(
     __name__,
     path='/',
+    order=0,
     title='Mental Health - Overview',
 )
 

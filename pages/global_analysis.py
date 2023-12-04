@@ -33,6 +33,7 @@ pd.set_option('display.max_columns', None)
 dash.register_page(
     __name__,
     path='/global-analysis',
+    order=1,
     title='Mental Health - Analysis Dashboard'
 )
 

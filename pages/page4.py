@@ -5,6 +5,7 @@ import dash_mantine_components as dmc
 dash.register_page(
     __name__,
     path='/page4',
+    order=3,
     title='Page 4'
 )
 
