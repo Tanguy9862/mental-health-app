@@ -5,12 +5,12 @@ from dash_iconify import DashIconify
 
 tabs_heatmap = html.Div(
     [
-        dmc.Drawer(
-            id='data-drawer',
-            padding='md',
-            size='35%',
+        dmc.Modal(
+            id='data-modal',
+            # padding='md',
+            size='55%',
             styles={
-                'drawer': {
+                'modal': {
                     'background-color': '#f2f2f2',
                 }
             },
@@ -19,6 +19,7 @@ tabs_heatmap = html.Div(
                     [
                         """
                         ## Data Management and Analysis Overview
+                        ---
 
                         ### Heatmap Visualization 
                         Our heatmap visualization presents the evolution of mental health 
@@ -43,14 +44,13 @@ tabs_heatmap = html.Div(
                         relevant trends for analysis.
                         
                         ### Continent-Level Aggregation 
-                        In the continent-level view, the heatmap includes only the countries selected by the user, 
-                        rather than aggregating all countries in a continent. This user-centric approach allows for a 
-                        more customized and relevant analysis, focusing on the specific interests of the user. 
-                        The data for these selected countries is then aggregated to represent the average prevalence 
-                        on a continental level.
+                         You now have the flexibility to choose between adding individual countries or entire 
+                         continents to your view. This feature allows for a more customizable and comprehensive 
+                         analysis, focusing on the specific areas that interest you. When you add an entire continent, 
+                         the heatmap aggregates data from all the countries within that continent, providing a 
+                         broad overview. Alternatively, you can select specific countries for a more focused analysis.
                         """
                     ],
-                    # style={'color': 'red'}
                 )
             ]
         ),
@@ -65,7 +65,7 @@ tabs_heatmap = html.Div(
                             color='violet',
                             id='switch-country-continent',
                             persistence=True,
-                            persistence_type='memory'
+                            persistence_type='session'
                         )
                     ],
                     label='Switch to Continent or Country view',

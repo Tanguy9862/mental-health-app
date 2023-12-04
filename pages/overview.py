@@ -7,7 +7,7 @@ import dash_extensions as de
 
 from utils.overview_figures import disorder_bar_fig, graph_functions, prevalence_by_disorder
 from utils.overview_accordion import disorders_accordion
-from utils.fig_config import FIG_CONFIG, BG_TRANSPARENT, MAIN_TITLE_COLOR
+from utils.utils_config import FIG_CONFIG, BG_TRANSPARENT, MAIN_TITLE_COLOR
 
 dash.register_page(
     __name__,

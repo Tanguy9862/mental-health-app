@@ -1,6 +1,6 @@
 import plotly.express as px
 from utils.process_data import all_disorders_dataframes
-from utils.fig_config import BG_TRANSPARENT, HOVERLABEL_TEMPLATE
+from utils.utils_config import BG_TRANSPARENT, HOVERLABEL_TEMPLATE
 
 
 def create_heatmap(df, disorder_name, entities, grouping_field):

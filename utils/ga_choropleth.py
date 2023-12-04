@@ -1,15 +1,18 @@
 import plotly.express as px
-from utils.fig_config import BG_TRANSPARENT
+from utils.utils_config import BG_TRANSPARENT
+from utils.process_data import country_code_to_continent_name
 
 
 # FIGURE:
 def create_choropleth_fig(df, color_scale):
+    df['Continent'] = df['Code'].apply(country_code_to_continent_name)
+
     fig = px.choropleth(
         df,
         locations='Code',
         color='Value',
         color_continuous_scale=color_scale,
-        custom_data=['Entity']
+        custom_data=['Entity', 'Continent']
     )
 
     fig.update_geos(

@@ -14,6 +14,8 @@ app = dash.Dash(
     update_title=None
 )
 
+server = app.server
+
 pages_order = [page['path'] for page in dash.page_registry.values()]
 style_btn_nav = {
     'color': '#7159a3',

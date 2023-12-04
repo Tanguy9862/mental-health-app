@@ -2,19 +2,26 @@ import dash
 import pandas as pd
 import dash_mantine_components as dmc
 import dash_extensions as de
-from dash import html, dcc, callback, Input, Output, State, clientside_callback, no_update, Patch, ctx, ALL
+from dash import html, dcc, callback, Input, Output, State, clientside_callback, no_update, Patch, ctx, ALL, MATCH
 from dash.exceptions import PreventUpdate
 from dash_iconify import DashIconify
 
-from utils.process_data import all_disorders_dataframes, continent_dict
-from utils.ga_utils import calculate_slope, make_edit_icon, mapping_list_functions, filter_dataframe
+from utils.process_data import all_disorders_dataframes, country_code_to_continent_name
+from utils.ga_utils import calculate_slope, make_edit_icon, get_last_added_entity, update_last_entity, filter_dataframe, \
+    get_country_continent_name, create_country_title
 from utils.ga_choropleth import create_choropleth_fig
 from utils.ga_heatmap import create_heatmap
 from utils.ga_tabs import tabs_heatmap, tabs_sankey
-from utils.fig_config import FIG_CONFIG, BG_TRANSPARENT, MAIN_TITLE_COLOR, HIDE
+from utils.utils_config import FIG_CONFIG, BG_TRANSPARENT, HIDE, STORAGE_SESSION
 
 url = 'https://lottie.host/f2933ddb-a454-4e35-bea0-de15f496c6c3/tgIm6ZNww2.json'
 options = dict(loop=True, autoplay=True)
+
+all_continents = [
+    continent
+    for continent in all_disorders_dataframes['Anxiety'].prevalence_by_country['Continent'].unique()
+    if continent != 'Unknown'
+]
 
 CHOROPLETH_INTERVAL = 50
 SLIDER_YEAR_INCREMENT = 10
@@ -28,24 +35,6 @@ dash.register_page(
     path='/global-analysis',
     title='Mental Health - Analysis Dashboard'
 )
-
-
-def get_country_name(figure_data):
-    if figure_data:
-        country_path = figure_data['points'][0]['customdata']
-        return country_path[0] if isinstance(country_path, list) else country_path
-
-
-def create_country_title(text, id='', animation=None):
-    return dmc.Title(
-        text,
-        id=id,
-        color=MAIN_TITLE_COLOR,
-        align='justify',
-        order=2,
-        className=animation
-    )
-
 
 layout = html.Div(
     [
@@ -82,7 +71,7 @@ layout = html.Div(
                                         'item': {'font-size': '0.9rem'}
                                     },
                                     persistence=True,
-                                    persistence_type='session'
+                                    persistence_type=STORAGE_SESSION
                                 ),
                             ],
                             position='left',
@@ -123,20 +112,27 @@ layout = html.Div(
                         dmc.Divider(label='Quick Add: Select by Continent', mt='xl'),
                         dmc.Container(
                             [
-                                dmc.Center(
-                                    [
-                                        dmc.CheckboxGroup(
-                                            id='checkbox-continent',
-                                            label=None,
-                                            children=[
-                                                dmc.Checkbox(
-                                                    label=continent,
-                                                    value=continent,
-                                                )
-                                                for continent in continent_dict.values()
-                                            ]
-                                        )
-                                    ]
+                                dmc.MultiSelect(
+                                    label=None,
+                                    placeholder='Select a continent..',
+                                    id='select-continent',
+                                    persistence=True,
+                                    persistence_type='session',
+                                    data=sorted([
+                                        {'value': continent, 'label': continent} for continent in all_continents
+                                    ], key=lambda x: x['value']),
+                                    styles={
+                                        'input': {
+                                            'background-color': 'rgba(0,0,0,0)',
+                                            'border': 'none',
+                                            'font-size': '1.5625rem',
+                                            'color': '#4e3a8e',
+                                            'font-weight': 'bold',
+                                        },
+                                        'item': {
+                                            'font-size': '0.9rem',
+                                        }
+                                    },
                                 )
                             ],
                             mt='lg',
@@ -207,7 +203,9 @@ layout = html.Div(
         dcc.Store(id='disorder-data'),
         dcc.Store(id='average-prevalence-per-country'),
         dcc.Store(id='annual-prevalence-per-country'),
-        dcc.Store(id='selected-countries', data=[], storage_type='session')
+        dcc.Store(id='selected-entities', data={}, storage_type=STORAGE_SESSION),
+        dcc.Store(id='last-entity-add', data=[], storage_type=STORAGE_SESSION),
+        dcc.Store(id='cache-selected-continent', data=[], storage_type=STORAGE_SESSION)
     ],
     id='global-analysis-container',
     className='animate__animated animate__fadeIn animate__slow'
@@ -291,12 +289,13 @@ def update_choropleth_fig(data, disorder_name, figure):
     Update the choropleth figure with disorder data filtered on a specif year range
     """
     data_to_df = pd.DataFrame(data)
+    data_to_df['Continent'] = data_to_df['Code'].apply(country_code_to_continent_name)
 
     if figure:
         color_scale_seq = all_disorders_dataframes[disorder_name].color_scale
 
         patched_choropleth = Patch()
-        patched_choropleth['data'][0]['customdata'] = data_to_df['Entity']
+        patched_choropleth['data'][0]['customdata'] = list(zip(data_to_df['Entity'], data_to_df['Continent']))
         patched_choropleth['data'][0]['locations'] = data_to_df['Code']
         patched_choropleth['data'][0]['z'] = data_to_df['Value']
         patched_choropleth['layout']['coloraxis']['colorscale'] = [
@@ -321,53 +320,121 @@ def update_choropleth_fig(data, disorder_name, figure):
 
 
 @callback(
-    Output('selected-countries', 'data'),
+    Output('selected-entities', 'data'),
+    Output('last-entity-add', 'data'),
+    Output('cache-selected-continent', 'data'),
+    Output('select-continent', 'value'),
     Input('choropleth-fig', 'clickData'),
+    Input('select-continent', 'value'),
     Input('del-last-selected-country', 'n_clicks'),
     Input('del-all-selected-country', 'n_clicks'),
-    State('selected-countries', 'data'),
+    State('selected-entities', 'data'),
+    State('last-entity-add', 'data'),
+    State('cache-selected-continent', 'data'),
     State('select-disorder', 'value'),
     prevent_initial_call=True
 )
-def update_selected_countries(choropleth_data, _1, _2, current_countries, disorder_name):
+def update_selected_entities(
+        choropleth_data,
+        selected_continent,
+        _1, _2,
+        current_entities: dict,
+        last_entity: list,
+        cache_continent: list,
+        disorder_name: str
+):
     """
-    Update the dcc.Store which contains the list of all selected countries
+    Update the dcc.Store which contains the list of all selected entities
     """
     input_id = ctx.triggered_id
 
     # Get country on choropleth click
     if choropleth_data and input_id == 'choropleth-fig':
-        new_country = get_country_name(choropleth_data)
-        if new_country not in current_countries:
-            current_countries.append(new_country)
+        new_country, new_continent = get_country_continent_name(choropleth_data)
+
+        if new_continent not in {continent for continent in current_entities}:
+            current_entities.update({new_continent: [new_country]})
+            update_last_entity(last_entity, new_continent, new_country)
+            cache_continent.append(new_continent)
+        elif new_country not in current_entities[new_continent]:
+            current_entities[new_continent].append(new_country)
+            update_last_entity(last_entity, new_continent, new_country)
+
+    elif input_id == 'select-continent':
+        difference_cache_and_selected = len(cache_continent) - len(selected_continent)
+
+        # Case where a continent have been deleted by user
+        if difference_cache_and_selected > 0 and current_entities:
+            continent_to_remove = [continent for continent in cache_continent if continent not in selected_continent]
+
+            # Delete continent from current_entities, last_entity and cache_continent:
+            del current_entities[continent_to_remove[0]]
+            last_entity = [
+                [country, continent] for country, continent in last_entity if continent != continent_to_remove[0]
+            ]
+            cache_continent.remove(continent_to_remove[0])
+        else:
+            # Add new continent with associated countries
+            disorder_df = all_disorders_dataframes[disorder_name].prevalence_by_country
+
+            for continent in selected_continent:
+                disorder_df_filtered = disorder_df.query('Continent in @continent')[['Entity', 'Continent']].drop_duplicates()
+
+                for i, row in enumerate(disorder_df_filtered.iterrows()):
+                    continent, country = row[1]['Continent'], row[1]['Entity']
+
+                    if continent not in current_entities:
+                        current_entities.update({continent: [country]})
+                    else:
+                        if country not in current_entities[continent]:
+                            current_entities[continent].append(country)
+
+                    update_last_entity(last_entity, continent, country)
+
+                # Update cache with new continent:
+                _, last_continent, = get_last_added_entity(last_entity)
+                if last_continent not in cache_continent:
+                    cache_continent.append(last_continent)
 
     # Delete the last country selected or clear all the countries
-    elif input_id.startswith('del') and current_countries:
-        list_modifier = mapping_list_functions[input_id]
-        list_modifier(current_countries)
+    elif all((input_id.startswith('del'), current_entities, last_entity)):
 
-    # Get a random country (initial load):
-    elif not current_countries and not input_id:
-        new_country = all_disorders_dataframes[disorder_name].prevalence_by_country['Entity'].sample(n=1).iloc[0]
-        current_countries.append(new_country)
+        if 'last' in input_id:
+            country_to_del, continent_targ = get_last_added_entity(last_entity)
 
-    return current_countries
+            # Remove last country added:
+            current_entities[continent_targ].remove(country_to_del)
+
+            # Check if the continent key has remaining countries, else delete it:
+            if not current_entities[continent_targ]:
+                del current_entities[continent_targ]
+                cache_continent.remove(continent_targ)
+
+            # Remove the deleted entity (the last element) from last_entity:
+            last_entity.pop()
+
+        else:
+            current_entities, last_entity, cache_continent = dict(), list(), list()
+
+    selected_continent = cache_continent
+    return current_entities, last_entity, cache_continent, selected_continent
 
 
 @callback(
     Output('country-title-container', 'children'),
     Output('base-title', 'children'),
-    Input('selected-countries', 'data'),
+    Input('last-entity-add', 'data'),
     prevent_initial_call=True
 )
-def update_country_title(selected_countries: list):
+def update_country_title(last_entity: list):
     """
     Update the main title based on the last selected country from the user
     """
+    if last_entity:
+        last_country, *_ = get_last_added_entity(last_entity)
 
-    if selected_countries:
         return create_country_title(
-            selected_countries[-1],
+            last_country,
             'country-title-container',
             'animate__animated animate__flash'
         ), 'Exploring Mental Health Trends in'
@@ -385,7 +452,7 @@ def update_country_title(selected_countries: list):
 )
 def update_choropleth_tooltip(data, disorder_name, year_range):
     if data:
-        country, prevalence = get_country_name(data), data['points'][0]['z']
+        (country, continent), prevalence = get_country_continent_name(data), data['points'][0]['z']
 
         return dmc.Container(
             [
@@ -412,40 +479,27 @@ def update_choropleth_tooltip(data, disorder_name, year_range):
 
 @callback(
     Output('annual-prevalence-per-country', 'data'),
-    Output('selected-countries', 'data', allow_duplicate=True),
-    Input('selected-countries', 'data'),
+    Input('selected-entities', 'data'),
     Input('disorder-data', 'data'),
     Input('year-slider', 'value'),
-    Input('checkbox-continent', 'value'),
-    State('annual-prevalence-per-country', 'data'),
     prevent_initial_call=True
 )
-def update_annual_prevalence_country(selected_countries, disorder_data, year_range, checkbox, old_annual_prevalence_df):
+def update_annual_prevalence_country(selected_entities, disorder_data, year_range):
     """
     Update the annual prevalence country data.
     This callback is triggered when users click on countries (choropleth-map), edit the year interval (year-slider),
-    edit the disorder data (disorder-data) or use checkbox to quickly add a continent (checkbox-continent).
-    Finally, this will return a list which contains all the countries selected and will be used in another callback
-    to build the charts (heatmap, sankey)
+    edit the disorder data (disorder-data).
+    This will return a filtered dataset which contains all the countries selected and will be used in another callback
+    to build the charts (heatmap, sankey).
     """
-    input_id = ctx.triggered_id
-    df = pd.DataFrame(disorder_data)
 
-    if input_id in {'selected-countries', 'disorder-data', 'year-slider'} and \
-            all((selected_countries, disorder_data, year_range)):
-        filtered_df = filter_dataframe(df, selected_countries, year_range, 'Entity')
-        return filtered_df.to_dict('records'), no_update
+    if all((selected_entities, disorder_data, year_range)):
+        df = pd.DataFrame(disorder_data)
+        countries = [country for sublist in selected_entities.values() for country in sublist]
+        filtered_df = filter_dataframe(df, countries, year_range, 'Entity')
+        return filtered_df.to_dict('records')
 
-    elif input_id == 'checkbox-continent' and all((disorder_data, year_range)):
-        filtered_df = filter_dataframe(df, checkbox, year_range, 'Continent')
-        concatenated_df = pd.concat([filtered_df, pd.DataFrame(old_annual_prevalence_df)]).drop_duplicates()
-        new_selected_countries = concatenated_df['Entity'].unique().tolist()
-        return concatenated_df.to_dict('records'), new_selected_countries
-
-    if not selected_countries:
-        return None, no_update
-
-    raise PreventUpdate
+    return None
 
 
 @callback(
@@ -486,7 +540,7 @@ def update_heatmap_fig(filtered_data, switch_filter):
 
 @callback(
     Output('sankey-container', 'children'),
-    Input('selected-countries', 'data'),
+    Input('selected-entities', 'data'),
     Input('disorder-data', 'data'),
     Input('year-slider', 'value'),
     prevent_initial_call=True
@@ -496,10 +550,11 @@ def update_sankey_fig(selected_countries, disorder_data, year_range):
     # print(f'input sankey: {input_id}')
     df = pd.DataFrame(disorder_data)
 
+    # DANS LE CALLBACK UTILISER INPUT DCC STORE ANUAL PREVALENCE UNIQUEMENT
+
     ##############################
     if input_id and year_range:
         # fn utils filter df
-
 
         countries = selected_countries
         year_start, year_end = year_range[0], year_range[1]
@@ -514,7 +569,7 @@ def update_sankey_fig(selected_countries, disorder_data, year_range):
 
 @callback(
     Output('switch-country-continent', 'disabled'),
-    Input('selected-countries', 'data'),
+    Input('selected-entities', 'data'),
     prevent_initial_call=True
 )
 def update_state_switcher(data):
@@ -524,12 +579,12 @@ def update_state_switcher(data):
 
 
 @callback(
-    Output('data-drawer', 'opened'),
+    Output('data-modal', 'opened'),
     Input('about-data-management', 'n_clicks'),
-    State('data-drawer', 'opened'),
+    State('data-modal', 'opened'),
     prevent_initial_call=True
 )
-def toggle_drawer(n, opened):
+def toggle_modal(_, opened):
     return not opened
 
 

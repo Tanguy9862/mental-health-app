@@ -1,7 +1,7 @@
 import pandas as pd
 import plotly.express as px
 from utils.process_data import all_disorders_dataframes
-from utils.fig_config import BG_TRANSPARENT
+from utils.utils_config import BG_TRANSPARENT
 
 WITH_PADDING = dict(pad=15, t=0, b=0, l=0, r=0)
 HOVERLABEL_TEMPLATE = dict(
@@ -30,6 +30,7 @@ colors = {
 
 prevalence_by_disorder['Color'] = prevalence_by_disorder['Disorder'].map(colors)
 prevalence_by_disorder['EstimatedPeopleAffected'] = round(prevalence_by_disorder['Value'] / 100 * 7.8 * 1000, 1)
+prevalence_by_disorder['FormattedValue'] = prevalence_by_disorder['Value'].apply(lambda x: f'{round(x, 1)}%')
 
 # PLOT BAR CHART:
 disorder_bar_fig = px.bar(
@@ -72,11 +73,11 @@ disorder_bar_fig.update_layout(
 )
 
 disorder_bar_fig.update_traces(
+    text=prevalence_by_disorder['FormattedValue'],
+    textposition='outside',
     marker_color=prevalence_by_disorder['Color'],
     width=0.5,
-    marker=dict(
-        line=dict(width=0)
-    ),
+    marker=dict(line=dict(width=0)),
     # customdata=prevalance_by_disorder['EstimatedPeopleAffected'],
     # hovertemplate='%{y}%<br>Estimated Affected People: %{customdata} millions<extra></extra>'
     hovertemplate=None,
