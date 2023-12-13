@@ -1,5 +1,5 @@
 import dash
-from dash import html, dcc, Input, Output, State, callback, no_update
+from dash import html, dcc, Input, Output, State, callback
 import dash_mantine_components as dmc
 import pandas as pd
 import plotly.express as px
@@ -8,10 +8,17 @@ from utils.ga_utils import create_country_title
 from utils.process_data import all_disorders_dataframes
 
 anxiety_gdp = all_disorders_dataframes['Anxiety'].prevalence_and_gdp
+anxiety_gdp_country = anxiety_gdp[anxiety_gdp["Continent"] != "Unknown"].sort_values(by="Year")
+anxiety_gdp_groups = anxiety_gdp[anxiety_gdp["Continent"] == "Unknown"].sort_values(by="Year")
+
 depressive_gdp = all_disorders_dataframes['Depressive'].prevalence_and_gdp
+depressive_gdp_country = depressive_gdp[depressive_gdp["Continent"] != "Unknown"].sort_values(by="Year")
+depressive_gdp_groups = depressive_gdp[depressive_gdp["Continent"] == "Unknown"].sort_values(by="Year")
 
 pd.set_option('display.max_columns', None)
 print(f'Anxiety gpd df:\n{anxiety_gdp}')
+print(f'Anxiety per country gpd df:\n{anxiety_gdp_country}')
+print(f'Anxiety per group gpd df :\n{anxiety_gdp_groups}')
 print(f'Depressive gpd df:\n{depressive_gdp}')
 
 dash.register_page(
@@ -33,6 +40,36 @@ layout = html.Div(
                             align='justify',
                             color='#4B4B4B',
                             mt='md'
+                        ),
+                        dmc.Select(id='select-disease',
+                                    data=[
+                                        {'label': 'Anxiety', 'value': 'Anxiety'},
+                                        {'label': 'Depressive', 'value': 'Depressive'}
+                                    ],
+                                    value='Anxiety',
+                                    size='md',
+                                    variant='unstyled',
+                                    style={'width': '10rem'},
+                                    styles={
+                                        'input': {
+                                            'font-size': '1.5625rem',
+                                            'color': '#4e3a8e',
+                                            'font-weight': 'bold',
+                                            'text-decoration': 'underline'
+                                        },
+                                        'item': {'font-size': '0.9rem'}
+                                    },
+                                    persistence=True
+                                   ),
+                        dmc.Switch(
+                            size="lg",
+                            radius="sm",
+                            label="Country/Group Of country Filter",
+                            id='filter-switch'
+                        ),
+                        html.Div(
+                            id='filter-text',
+                            children="Filtre par groupe de pays"  # Default text when switch is active
                         )
                     ],
                     offsetLg=1,
@@ -44,15 +81,8 @@ layout = html.Div(
             [
                 dmc.Col(
                     [
-                        html.H4('Animated GDP and population over decades'),
-                        html.P("Select an animation:"),
-                        dcc.RadioItems(
-                            id='selection',
-                            options=[{'label': "GDP - Scatter", 'value': 'GDP - Scatter'},
-                                     {'label': "Population - Bar", 'value': 'Population - Bar'}],
-                            value='GDP - Scatter',
-                        ),
-                        dcc.Loading(dcc.Graph(id="graph",style={"width":"1500px","height":"500px"}), type="cube")
+                        html.H2('Animated GDP and population over decades'),
+                        dcc.Loading(dcc.Graph(id="graph"), type="circle")
                     ],
                     offsetLg=1,
                     lg=5
@@ -77,28 +107,28 @@ layout = html.Div(
 )
 
 
-
-# toujours 2 lignes vides (au-dessus et en-dessous) entre un callback/fonction et un élément en-dessous/dessus (conventions)
 @callback(
-    Output("graph", "figure"), 
-    Input("selection", "value")
-     # ça permet de ne pas déclencher le callback au chargement de la page
-    # car en gros tous les callbacks au premier chargement de la page sont automatiquement déclenchés même si les
-    # inputs ne sont pas trigger
+    [Output("graph", "figure"),
+     Output("filter-text", "children")],
+    [Input("select-disease", "value"),
+     Input("filter-switch", "checked")]
 )
-
-def update_graph(selection):
-    df = anxiety_gdp
+def update_graph(selected_disease, switch_checked):
+    if selected_disease == 'Anxiety':
+        df = anxiety_gdp_groups if switch_checked else anxiety_gdp_country
+    elif selected_disease == 'Depressive':
+        df = depressive_gdp_groups if switch_checked else depressive_gdp_country
+    else:
+        # Handle other diseases or default case
+        df = anxiety_gdp_groups if switch_checked else anxiety_gdp_country  # You can change this to another default value or handle it accordingly
+    
     animations = {
         'GDP - Scatter': px.scatter(
-            df, x="GDP_per_capita_PPP_2017", y="Prevalence", animation_frame="Year", 
-            animation_group="Entity", size="Population (historical estimates)", color="Continent", 
-            hover_name="Entity", log_x=True, size_max=55, 
-            range_x=[1000,20000], range_y=[0,10]),
-        'Population - Bar': px.bar(
-            df, x="Continent", y="Population (historical estimates)", color="Continent", 
-            animation_frame="Year", animation_group="Entity", 
-            range_y=[0,4000000000]),
+            df, x="GDP_per_capita_PPP_2017", y="Prevalence", animation_frame="Year",
+            animation_group="Entity", size="GDP_per_capita_PPP_2017", color="Continent",
+            hover_name="Entity", log_x=True),
     }
-    return animations[selection]
 
+    filter_text = "Filtre par groupe de pays" if switch_checked else "Filtre par pays"
+    
+    return animations['GDP - Scatter'], filter_text
