@@ -15,11 +15,15 @@ depressive_gdp = all_disorders_dataframes['Depressive'].prevalence_and_gdp
 depressive_gdp_country = depressive_gdp[depressive_gdp["Continent"] != "Unknown"].sort_values(by="Year")
 depressive_gdp_groups = depressive_gdp[depressive_gdp["Continent"] == "Unknown"].sort_values(by="Year")
 
+pop_per_country = anxiety_gdp[['Entity','Population (historical estimates)']]
+
+
 pd.set_option('display.max_columns', None)
 print(f'Anxiety gpd df:\n{anxiety_gdp}')
 print(f'Anxiety per country gpd df:\n{anxiety_gdp_country}')
 print(f'Anxiety per group gpd df :\n{anxiety_gdp_groups}')
 print(f'Depressive gpd df:\n{depressive_gdp}')
+print(f'Population per country df:\n{pop_per_country}')
 
 dash.register_page(
     __name__,
@@ -36,7 +40,7 @@ layout = html.Div(
                     [
                         create_country_title('Exploring the Correlation between GDP and Mental Health Disorder'),
                         dmc.Text(
-                            "Have a look at mental health disorders prevalence by looking at different countries' GDP",
+                            "Take a look at the prevalence of anxiety and depressive disorders by comparing them to the GDP of different countries",
                             align='justify',
                             color='#4B4B4B',
                             mt='md'
@@ -84,6 +88,7 @@ layout = html.Div(
                         html.H2('Animated GDP and population over decades'),
                         dcc.Loading(dcc.Graph(id="graph"), type="circle")
                     ],
+                    
                     offsetLg=1,
                     lg=5
                 )
@@ -93,7 +98,7 @@ layout = html.Div(
             [
                 dmc.Col(
                     [
-                        # Partie avec les filtres ici (si cela a du sens pour votre application)
+                        # Filtres ?
                     ],
                     offsetLg=1,
                     style={'border': 'solid 1px green'}
@@ -107,28 +112,45 @@ layout = html.Div(
 )
 
 
+
 @callback(
     [Output("graph", "figure"),
      Output("filter-text", "children")],
     [Input("select-disease", "value"),
      Input("filter-switch", "checked")]
 )
+
+
+
 def update_graph(selected_disease, switch_checked):
     if selected_disease == 'Anxiety':
         df = anxiety_gdp_groups if switch_checked else anxiety_gdp_country
     elif selected_disease == 'Depressive':
         df = depressive_gdp_groups if switch_checked else depressive_gdp_country
-    else:
-        # Handle other diseases or default case
-        df = anxiety_gdp_groups if switch_checked else anxiety_gdp_country  # You can change this to another default value or handle it accordingly
+    else: 
+        df = anxiety_gdp_groups if switch_checked else anxiety_gdp_country 
     
-    animations = {
-        'GDP - Scatter': px.scatter(
+    if switch_checked:
+        # Scatter plot adapté aux variables pour les pays de continent unknown
+        scatter_plot = px.scatter(
+            df, x="GDP_per_capita_PPP_2017", y="Prevalence", animation_frame="Year",
+            animation_group="Entity", size="GDP_per_capita_PPP_2017", color="Entity",
+            hover_name="Entity", log_x=True
+        )
+    else:
+        # Scatter plot par défaut pour les autres pays
+        scatter_plot = px.scatter(
             df, x="GDP_per_capita_PPP_2017", y="Prevalence", animation_frame="Year",
             animation_group="Entity", size="GDP_per_capita_PPP_2017", color="Continent",
-            hover_name="Entity", log_x=True),
-    }
+            hover_name="Entity", log_x=True
+        )
+
+    # Ajouter la population au survol de la souris
+    scatter_plot.update_traces(
+        hovertemplate='<b>%{hovertext}</b><br>Population: %{text}',
+        text=df['Population (historical estimates)']
+    )
 
     filter_text = "Filtre par groupe de pays" if switch_checked else "Filtre par pays"
     
-    return animations['GDP - Scatter'], filter_text
+    return scatter_plot, filter_text
