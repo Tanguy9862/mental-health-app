@@ -147,17 +147,23 @@ layout = html.Div(
     Input('gdp-select-disease', 'value')
 )
 def update_select_list_continent(disorder_name):
+
+    all_entities = sorted([
+            {'value': continent, 'label': continent}
+            for continent in all_disorders_dataframes[disorder_name].prevalence_by_country['Continent'].unique()
+            if continent != 'Unknown'
+        ], key=lambda x: x['value'])
+
+    all_continents = list(set([continent for entity in all_entities for continent in entity.values()]))
+
     return dmc.MultiSelect(
         label=None,
+        value=all_continents,
         placeholder='Select a continent..',
         id='gdp-select-continent',
         persistence=True,
         persistence_type='session',
-        data=sorted([
-            {'value': continent, 'label': continent}
-            for continent in all_disorders_dataframes[disorder_name].prevalence_by_country['Continent'].unique()
-            if continent != 'Unknown'
-        ], key=lambda x: x['value']),
+        data=all_continents,
         style={'width': '100%'},
         styles={
             'input': {
@@ -204,43 +210,3 @@ def update_disabled_state_select_continent(checked):
     if checked:
         return True
     return False
-
-# @callback(
-#     Output("graph", "figure"),
-#     Output("filter-text", "children"),
-#     Input("select-disease", "value"),
-#     Input("filter-switch", "checked")
-# )
-# def update_graph(selected_disease, switch_checked):
-#
-#     if selected_disease == 'Anxiety':
-#         df = anxiety_gdp_groups if switch_checked else anxiety_gdp_country
-#     elif selected_disease == 'Depressive':
-#         df = depressive_gdp_groups if switch_checked else depressive_gdp_country
-#     else:
-#         df = anxiety_gdp_groups if switch_checked else anxiety_gdp_country
-#
-#     if switch_checked:
-#         # Scatter plot adapté aux variables pour les pays de continent unknown
-#         scatter_plot = px.scatter(
-#             df, x="GDP_per_capita_PPP_2017", y="Prevalence", animation_frame="Year",
-#             animation_group="Entity", size="GDP_per_capita_PPP_2017", color="Entity",
-#             hover_name="Entity", log_x=True
-#         )
-#     else:
-#         # Scatter plot par défaut pour les autres pays
-#         scatter_plot = px.scatter(
-#             df, x="GDP_per_capita_PPP_2017", y="Prevalence", animation_frame="Year",
-#             animation_group="Entity", size="GDP_per_capita_PPP_2017", color="Continent",
-#             hover_name="Entity", log_x=True
-#         )
-#
-#     # Ajouter la population au survol de la souris
-#     scatter_plot.update_traces(
-#         hovertemplate='<b>%{hovertext}</b><br>Population: %{text}',
-#         text=df['Population (historical estimates)']
-#     )
-#
-#     filter_text = "Filtre par groupe de pays" if switch_checked else "Filtre par pays"
-#
-#     return scatter_plot, filter_text

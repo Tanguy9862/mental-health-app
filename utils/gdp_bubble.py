@@ -46,7 +46,14 @@ def create_bubble(df, switcher):
             showspikes=False,
             title='GDP'
         ),
-        yaxis=dict(showgrid=False, linecolor='#7159a3', linewidth=3, title='Prevalence (%)', ticksuffix="  "),
+        yaxis=dict(
+            showgrid=False,
+            linecolor='#7159a3',
+            linewidth=3,
+            title='Prevalence (%)',
+            ticksuffix="  ",
+            zeroline=False
+        ),
         hovermode='x unified',
         hoverlabel=HOVERLABEL_TEMPLATE
     )
