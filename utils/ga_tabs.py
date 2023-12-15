@@ -6,7 +6,7 @@ from dash_iconify import DashIconify
 tabs_heatmap = html.Div(
     [
         dmc.Modal(
-            id='data-modal',
+            id='data-modal-heatmap',
             # padding='md',
             size='55%',
             styles={
@@ -74,7 +74,7 @@ tabs_heatmap = html.Div(
                 ),
                 dmc.ActionIcon(
                     DashIconify(icon='ph:question'),
-                    id='about-data-management',
+                    id='about-data-management-heatmap',
                     size='md',
                     variant='transparent'
                 )
@@ -89,6 +89,125 @@ tabs_heatmap = html.Div(
 
 tabs_sankey = html.Div(
     [
-        dmc.Container(id='sankey-container', px=0)
+        dmc.Modal(
+            id='data-modal-sankey',
+            size='55%',
+            styles={
+                'modal': {
+                    'background-color': '#f2f2f2',
+                }
+            },
+            children=[
+                dcc.Markdown(
+                    [
+                        """
+                        ## Data Management and Methodology Explanation
+                        ---
+                        
+                        ### Sankey Visualization
+                        In this analysis, we focus on the prevalence of a specific disease across various demographic categories. 
+                        The data is structured to reflect the disease's prevalence across different continents, 
+                        countries, and within specific demographic categories like age and gender.
+                                                
+                        ### Prevalence Calculation
+                        The prevalence data is initially segmented into different demographic categories 
+                        *(e.g., age groups and gender)*. For each country, we have an estimated total number 
+                        of affected individuals and prevalence rates for each category.
+                        
+                        ### Normalization Across Categories
+                        To ensure comparability across different categories and to align the data with the total 
+                        estimated cases, we performed a normalization process:
+                        
+                        **Total Prevalence Summation:** For each row in the dataset, representing a country, 
+                        we calculate the sum of prevalences for all categories.
+                        
+                        **Proportional Distribution:** We then distribute the estimated affected number 
+                          proportionally among the categories based on their share of the total prevalence.
+                        
+                        **Resulting Values:** The final values in each category reflect an estimated count of 
+                          affected individuals, proportionally adjusted to align with the total prevalence observed 
+                          in that country.
+                        
+                        """
+                    ],
+                )
+            ]
+        ),
+        dmc.Container(
+            [
+                dmc.Group(
+                    [
+                        dmc.Switch(
+                            onLabel=DashIconify(icon='ri:time-line', height=15),
+                            offLabel=DashIconify(icon='fontisto:intersex', height=15),
+                            size='md',
+                            color='violet',
+                            id='switch-age-sex',
+                            persistence=True,
+                            persistence_type='session',
+                        ),
+                        dmc.ActionIcon(
+                            DashIconify(icon='ph:question'),
+                            id='about-data-management-sankey',
+                            size='md',
+                            variant='transparent'
+                        )
+                    ],
+                    mt='lg',
+                    position='center'
+                ),
+                dmc.Container(id='sankey-container', px=0, mt='xl'),
+                dcc.Tooltip(id='sankey-tooltip', background_color='black'),
+                dcc.Interval(id='sankey-interval', interval=1000, max_intervals=0),
+                dmc.Group(
+                    [
+                        dmc.ActionIcon(
+                            [
+                                DashIconify(icon='akar-icons:play', width=30, color='#967bb6'),
+                            ],
+                            n_clicks=0,
+                            variant='transparent',
+                            id='play-sankey-animation'
+                        ),
+                        dmc.Slider(
+                            id='sankey-year-slider',
+                            # value=5,
+                            # min=1,
+                            # max=10,
+                            # minRange=1,
+                            # marks=[
+                            #     {'value': i, 'label': i} for i in range(min_year, max_year + 2, SLIDER_YEAR_INCREMENT)
+                            # ],
+                            persistence=True,
+                            persistence_type='session',
+                            color='white',
+                            style={'width': '50%'},
+                            styles={
+                                'bar': {'background-color': '#7159a3', 'height': '2px'},
+                                'track': {'height': '2px'},
+                                'mark': {'display': 'None'},
+                                'markLabel': {'margin-top': '15px'},
+                                'thumb': {'background-color': '#7159a3', 'border': f'solid 1px #7159a3'}
+                            }
+                        ),
+                    ],
+                    mt='lg',
+                    position='center'
+                ),
+                dmc.Divider(label='Country Display Preferences', mt=75),
+                dmc.RadioGroup(
+                    [
+                        dmc.Radio('Top 5', value='top-5'),
+                        dmc.Radio('All', value='all')
+                    ],
+                    id='sankey-country-filter-selection',
+                    value='top-5',
+                    mt='md',
+                    ml='xl',
+                )
+            ],
+            id='sankey-tab',
+            px=0
+        )
     ]
 )

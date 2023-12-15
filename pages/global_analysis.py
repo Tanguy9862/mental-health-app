@@ -2,20 +2,21 @@ import dash
 import pandas as pd
 import dash_mantine_components as dmc
 import dash_extensions as de
+import plotly.graph_objects as go
 from dash import html, dcc, callback, Input, Output, State, clientside_callback, no_update, Patch, ctx, ALL, MATCH
 from dash.exceptions import PreventUpdate
 from dash_iconify import DashIconify
 
-from utils.process_data import all_disorders_dataframes, country_code_to_continent_name
+from utils.process_data import all_disorders_dataframes, country_code_to_continent_name, get_population_data
 from utils.ga_utils import calculate_slope, make_edit_icon, get_last_added_entity, update_last_entity, filter_dataframe, \
-    get_country_continent_name, create_country_title
+    get_country_continent_name, create_country_title, update_no_data, clean_duplicated_columns
 from utils.ga_choropleth import create_choropleth_fig
 from utils.ga_heatmap import create_heatmap
+from utils.ga_sankey import create_sankey
 from utils.ga_tabs import tabs_heatmap, tabs_sankey
 from utils.utils_config import FIG_CONFIG, BG_TRANSPARENT, HIDE, STORAGE_SESSION
 
-url = 'https://lottie.host/f2933ddb-a454-4e35-bea0-de15f496c6c3/tgIm6ZNww2.json'
-options = dict(loop=True, autoplay=True)
+pd.set_option('display.float_format', '{}'.format)
 
 all_continents = [
     continent
@@ -206,7 +207,8 @@ layout = html.Div(
         dcc.Store(id='annual-prevalence-per-country'),
         dcc.Store(id='selected-entities', data={}, storage_type=STORAGE_SESSION),
         dcc.Store(id='last-entity-add', data=[], storage_type=STORAGE_SESSION),
-        dcc.Store(id='cache-selected-continent', data=[], storage_type=STORAGE_SESSION)
+        dcc.Store(id='cache-selected-continent', data=[], storage_type=STORAGE_SESSION),
+        dcc.Store(id='sankey-data', data=[])
     ],
     id='global-analysis-container',
     className='animate__animated animate__fadeIn animate__slow'
@@ -511,7 +513,10 @@ def update_annual_prevalence_country(selected_entities, disorder_data, year_rang
 )
 def update_heatmap_fig(filtered_data, switch_filter):
     if not filtered_data:
-        return dmc.Container(children=[de.Lottie(url=url, options=options)], px=0, size=375)
+        return update_no_data(
+            text='Please choose countries by clicking on the globe, or add them quickly by selecting a continent from '
+                 'the dropdown list'
+        )
 
     filtered_df = pd.DataFrame(filtered_data)
     disorder_name = filtered_df.iloc[0]['Disorder']
@@ -540,52 +545,231 @@ def update_heatmap_fig(filtered_data, switch_filter):
 
 
 @callback(
-    Output('sankey-container', 'children'),
+    Output('sankey-data', 'data'),
+    Input('select-disorder', 'value'),
     Input('selected-entities', 'data'),
-    Input('disorder-data', 'data'),
     Input('year-slider', 'value'),
+    Input('switch-age-sex', 'checked'),
     prevent_initial_call=True
 )
-def update_sankey_fig(selected_countries, disorder_data, year_range):
+def update_sankey_data(disorder_name, entities, year_range, switcher):
+
+    # print('****UPDATE SANKEY DATA TRIGGERED***')
+    all_countries = [country for sublist in entities.values() for country in sublist]
+
+    if not all_countries or (not switcher and disorder_name == 'Eating'):
+        return None
+
+    if switcher:
+        df_to_use = all_disorders_dataframes[disorder_name].prevalence_by_sex
+    else:
+        df_to_use = all_disorders_dataframes[disorder_name].prevalence_by_age
+
+    filtered_df = filter_dataframe(
+        df=df_to_use,
+        entities=all_countries,
+        column_to_filter='Entity',
+        year_range=year_range
+    )
+
+    # print(filtered_df)
+
+    return filtered_df.to_dict('records')
+
+
+@callback(
+    Output('sankey-container', 'children'),
+    Input('sankey-data', 'data'),
+    Input('sankey-country-filter-selection', 'value'),
+    Input('sankey-year-slider', 'value'),
+    State('select-disorder', 'value'),
+    State('switch-age-sex', 'checked'),
+    State('selected-entities', 'data'),
+    prevent_initial_call=True
+)
+def update_sankey_fig(sankey_data, country_filter_selection, sankey_year, disorder_name, switcher, entities):
+
+    if not sankey_data and not switcher and disorder_name == 'Eating':
+        return update_no_data(
+            text='Unfortunately, there is no available age category data for eating disorders at this time'
+        )
+    if not sankey_data:
+        return update_no_data(
+            text='Please choose countries by clicking on the globe, or add them quickly by selecting a continent from '
+                 'the dropdown list'
+        )
+
+    # Initialize data for Sankey
+    filtered_df = pd.DataFrame(sankey_data)
+    filtered_df_on_year = filtered_df.query('Year == @sankey_year')
+    filtered_categories = [category for category in filtered_df_on_year.columns[3:-1]]
+
+    # Add column with estimated population for each country
+    all_countries = [country for item in entities.values() for country in item]
+    population_per_country_df = get_population_data(entities=all_countries, year=sankey_year)
+    filtered_df_on_year_with_pop = filtered_df_on_year.merge(population_per_country_df, on='Entity', how='inner')
+    filtered_df_on_year_with_pop = filtered_df_on_year_with_pop[
+        [col for col in filtered_df_on_year_with_pop.columns if not col.endswith('_y')]
+    ]
+    filtered_df_on_year_with_pop.columns = [col.replace('_x', '') for col in filtered_df_on_year_with_pop.columns]
+
+    # Add column with prevalence global per country
+    prevalence_global_country = all_disorders_dataframes[disorder_name].prevalence_by_country
+    prevalence_global_country = filter_dataframe(
+        df=prevalence_global_country,
+        entities=all_countries,
+        column_to_filter='Entity',
+        year_range=sankey_year
+    )
+    filtered_df_on_year_with_pop = filtered_df_on_year_with_pop.merge(
+        prevalence_global_country, on='Entity', how='inner')
+    filtered_df_on_year_with_pop = clean_duplicated_columns(filtered_df_on_year_with_pop)
+    filtered_df_on_year_with_pop = filtered_df_on_year_with_pop.rename(columns={'Value': 'GlobalPrevalence'})
+
+    if switcher:
+        title = f'Global Mapping of {disorder_name} Prevalence by Gender: From Continent to Country'
+    else:
+        title = f'Global Prevalence Flow of {disorder_name} Disorders: From Continent to Age Group'
+
+    fig = create_sankey(
+        filtered_df_on_year_with_pop,
+        filtered_categories=filtered_categories,
+        country_filter_selection=country_filter_selection,
+        title=title,
+        color_categories=['rgb(173, 216, 230)', 'rgb(255, 182, 193)'] if switcher else None
+    )
+
+    return dcc.Graph(figure=fig, config=FIG_CONFIG, id='sankey-fig')
+
+
+# @callback(
+#     Output('sankey-tooltip', 'show'),
+#     Output('sankey-tooltip', 'children'),
+#     Input('sankey-fig', 'hoverData'),
+#     prevent_initial_call=True
+# )
+# def update_sankey_tooltip(hover_data):
+#     if not hover_data:
+#         return no_update
+#
+#     print('hover data is')
+#     print(hover_data)
+#
+#     children = [
+#         html.P('hello')
+#     ]
+#
+#     return True, children
+
+
+
+@callback(
+    Output('sankey-year-slider', 'min'),
+    Output('sankey-year-slider', 'max'),
+    Output('sankey-year-slider', 'value'),
+    Output('sankey-year-slider', 'marks'),
+    Output('sankey-year-slider', 'disabled'),
+    Input('sankey-data', 'data'),
+    prevent_initial_call=True
+)
+def update_sankey_year_slider(sankey_data):
+
+    if sankey_data:
+        df = pd.DataFrame(sankey_data)
+        min_year, max_year = df['Year'].min(), df['Year'].max()
+        thresholds_steps = [(10, 1), (15, 2), (30, 5)]
+        range_year = max_year - min_year
+        step = next(step for threshold, step in thresholds_steps if range_year <= threshold)
+
+        marks = [
+            {'value': i, 'label': i} for i in range(min_year, max_year + 1, step)
+        ]
+
+        return min_year, max_year, min_year, marks, False
+
+    else:
+        return no_update, no_update, no_update, no_update, True
+
+
+@callback(
+    Output('sankey-interval', 'max_intervals'),
+    Output('play-sankey-animation', 'n_clicks'),
+    Input('play-sankey-animation', 'n_clicks'),
+    Input('sankey-interval', 'n_intervals'),
+    Input('sankey-data', 'data'),
+    State('sankey-year-slider', 'value'),
+    State('sankey-year-slider', 'max'),
+    State('play-sankey-animation', 'n_clicks'),
+    prevent_initial_call=True
+)
+def toggle_sankey_interval(n_btn, _, sankey_data, slider_value, value_max, current_n_clicks):
+
+    if not sankey_data:
+        return 0, no_update
+
     input_id = ctx.triggered_id
-    # print(f'input sankey: {input_id}')
-    df = pd.DataFrame(disorder_data)
 
-    # DANS LE CALLBACK UTILISER INPUT DCC STORE ANUAL PREVALENCE UNIQUEMENT
+    # Click on btn
+    if input_id == 'play-sankey-animation':
+        if n_btn % 2:
+            return -1, no_update
+        else:
+            return 0, no_update
+    # Triggered by interval increment
+    elif input_id == 'sankey-interval':
+        if slider_value == value_max:
+            return 0, current_n_clicks + 1
+        else:
+            return -1, no_update
 
-    ##############################
-    if input_id and year_range:
-        # fn utils filter df
+    raise PreventUpdate
 
-        countries = selected_countries
-        year_start, year_end = year_range[0], year_range[1]
-        # Filter the data based on countries selection and year range
-        filtered_df = df.query('Entity in @countries and Year >= @year_start and Year <= @year_end')
-        # print(filtered_df)
 
-    ########################
+@callback(
+    Output('sankey-year-slider', 'value', allow_duplicate=True),
+    Input('sankey-interval', 'n_intervals'),
+    State('sankey-year-slider', 'value'),
+    State('sankey-year-slider', 'max'),
+    State('sankey-year-slider', 'min'),
+    prevent_initial_call=True
+)
+def toggle_animation_sankey_slider(_, current_slider_value, max_value, min_value):
 
-    return None
+    if current_slider_value < max_value:
+        return current_slider_value + 1
+
+    return min_value
 
 
 @callback(
     Output('switch-country-continent', 'disabled'),
+    Output('switch-age-sex', 'disabled'),
     Input('selected-entities', 'data'),
     prevent_initial_call=True
 )
 def update_state_switcher(data):
     if not data:
-        return True
-    return False
+        return True, True
+    return False, False
 
 
 @callback(
-    Output('data-modal', 'opened'),
-    Input('about-data-management', 'n_clicks'),
-    State('data-modal', 'opened'),
+    Output('data-modal-heatmap', 'opened'),
+    Input('about-data-management-heatmap', 'n_clicks'),
+    State('data-modal-heatmap', 'opened'),
     prevent_initial_call=True
 )
-def toggle_modal(_, opened):
+def toggle_modal_heatmap(_, opened):
+    return not opened
+
+
+@callback(
+    Output('data-modal-sankey', 'opened'),
+    Input('about-data-management-sankey', 'n_clicks'),
+    State('data-modal-sankey', 'opened'),
+    prevent_initial_call=True
+)
+def toggle_modal_sankey(_, opened):
     return not opened
 
 
