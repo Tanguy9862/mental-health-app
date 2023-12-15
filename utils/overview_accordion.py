@@ -35,6 +35,16 @@ characters_list = [
                    "day-to-day tasks. Diagnosis and management require a careful and comprehensive approach.",
     },
     {
+        "id": "schizophrenia",
+        "image": "https://img.icons8.com/external-flaticons-lineal-color-flat-icons/64/external-schizophrenia"
+                 "-psychology-flaticons-lineal-color-flat-icons-3.png",
+        "label": "Schizophrenia Disorder",
+        "description": "Complexity in Thought and Perception",
+        "content": "Schizophrenia is a complex and chronic mental disorder characterized by disturbances in thought, "
+                   "perception, and behavior. It often presents with symptoms like hallucinations, delusions, "
+                   "and disorganized thinking, profoundly impacting daily functioning.",
+    },
+    {
         "id": "eating",
         "image": "https://img.icons8.com/external-flaticons-lineal-color-flat-icons/64/external-eating-disorder"
                  "-psychology-flaticons-lineal-color-flat-icons-2.png",

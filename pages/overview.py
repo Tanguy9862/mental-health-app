@@ -7,7 +7,7 @@ import dash_extensions as de
 
 from utils.overview_figures import disorder_bar_fig, graph_functions, prevalence_by_disorder
 from utils.overview_accordion import disorders_accordion
-from utils.utils_config import FIG_CONFIG, BG_TRANSPARENT, MAIN_TITLE_COLOR
+from utils.utils_config import FIG_CONFIG_WITH_DOWNLOAD, BG_TRANSPARENT, MAIN_TITLE_COLOR
 
 dash.register_page(
     __name__,
@@ -80,7 +80,7 @@ layout = dmc.NotificationsProvider(
                             [
                                 dmc.Container(id='estimate-container', px=0, children=[html.Div(id='group-estimate')]),
                                 dmc.FloatingTooltip(
-                                    [dcc.Graph(figure=disorder_bar_fig, config=FIG_CONFIG, id='disorder-fig')],
+                                    [dcc.Graph(figure=disorder_bar_fig, config=FIG_CONFIG_WITH_DOWNLOAD, id='disorder-fig')],
                                     label=None,
                                     width=275,
                                     color=BG_TRANSPARENT,
@@ -91,11 +91,9 @@ layout = dmc.NotificationsProvider(
                             align='center'
                         )
                     ],
-                    # style={'border': 'solid 2px blue'},
                     md=5
                 )
             ],
-            # style={'border': 'solid 1px red'},
             justify='center',
             id='overview-container',
             className='animate__animated animate__fadeIn animate__slow'

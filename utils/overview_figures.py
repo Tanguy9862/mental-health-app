@@ -15,7 +15,9 @@ FONT_COLOR = '#5D5D5D'
 
 # PROCESSING DATA:
 concatenate_df = pd.concat(
-    [all_disorders_dataframes[disorder].prevalence_by_year for disorder in ['Anxiety', 'Bipolar', 'Depressive', 'Eating']],
+    [all_disorders_dataframes[disorder].prevalence_by_year for disorder in [
+        'Anxiety', 'Bipolar', 'Depressive', 'Eating', 'Schizophrenia']
+     ],
     ignore_index=True
 )
 prevalence_by_disorder = concatenate_df.groupby('Disorder')['Value'].mean().reset_index()
@@ -25,7 +27,8 @@ colors = {
     'Anxiety': all_disorders_dataframes['Anxiety'].pastel_color,
     'Depressive': all_disorders_dataframes['Depressive'].pastel_color,
     'Bipolar': all_disorders_dataframes['Bipolar'].pastel_color,
-    'Eating': all_disorders_dataframes['Eating'].pastel_color
+    'Eating': all_disorders_dataframes['Eating'].pastel_color,
+    'Schizophrenia': all_disorders_dataframes['Schizophrenia'].pastel_color
 }
 
 prevalence_by_disorder['Color'] = prevalence_by_disorder['Disorder'].map(colors)
@@ -119,4 +122,5 @@ graph_functions = {
     'Depressive': lambda: plot_yearly_prevalence(all_disorders_dataframes['Depressive'].prevalence_by_year, colors['Depressive']),
     'Bipolar': lambda: plot_yearly_prevalence(all_disorders_dataframes['Bipolar'].prevalence_by_year, colors['Bipolar']),
     'Eating': lambda: plot_yearly_prevalence(all_disorders_dataframes['Eating'].prevalence_by_year, colors['Eating']),
+    'Schizophrenia': lambda: plot_yearly_prevalence(all_disorders_dataframes['Schizophrenia'].prevalence_by_year, colors['Schizophrenia']),
 }

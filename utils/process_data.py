@@ -15,6 +15,7 @@ file_paths = [
     f'{DATA_PATH}/bipolar-disorder-prevalence.csv',
     f'{DATA_PATH}/depressive-disorders-prevalence-ihme.csv',
     f'{DATA_PATH}/eating-disorders-prevalence.csv',
+    f'{DATA_PATH}/schizophrenia-prevalence.csv',
 ]
 
 file_gdp_paths = [
@@ -26,6 +27,7 @@ file_age_paths = [
     f'{DATA_AGE_PATH}/anxiety-disorders-prevalence-by-age.csv',
     f'{DATA_AGE_PATH}/bipolar-disorders-prevalence-by-age.csv',
     f'{DATA_AGE_PATH}/depressive-disorders-prevalence-by-age.csv',
+    f'{DATA_AGE_PATH}/schizophrenia-prevalence-by-age.csv',
 ]
 
 file_sex_paths = [
@@ -33,6 +35,7 @@ file_sex_paths = [
     f'{DATA_SEX_PATH}/bipolar-disorders-prevalence-males-vs-females.csv',
     f'{DATA_SEX_PATH}/depressive-disorders-prevalence-males-vs-females.csv',
     f'{DATA_SEX_PATH}/eating-disorders-prevalence-males-vs-females.csv',
+    f'{DATA_SEX_PATH}/schizophrenia-prevalence-males-vs-females.csv',
 ]
 
 continent_dict = {
@@ -186,11 +189,22 @@ eating_disorder = DisorderDataframe(
     px.colors.sequential.Magenta
 )
 
+schizophrenia_disorder = DisorderDataframe(
+    'Schizophrenia',
+    *[process_general_data(file_paths[4], 'Schizophrenia')[i] for i in range(2)],
+    None,
+    process_prevalence_by_age_data(file_age_paths[3]),
+    process_prevalence_by_sex_data(file_sex_paths[4]),
+    '#A0D2EB',
+    px.colors.sequential.Bluyl,
+)
+
 all_disorders_dataframes = {
     'Anxiety': anxiety_disorder,
     'Depressive': depressive_disorder,
     'Bipolar': bipolar_disorder,
-    'Eating': eating_disorder
+    'Eating': eating_disorder,
+    'Schizophrenia': schizophrenia_disorder
 
 }
 

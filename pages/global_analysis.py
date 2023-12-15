@@ -14,7 +14,7 @@ from utils.ga_choropleth import create_choropleth_fig
 from utils.ga_heatmap import create_heatmap
 from utils.ga_sankey import create_sankey
 from utils.ga_tabs import tabs_heatmap, tabs_sankey
-from utils.utils_config import FIG_CONFIG, BG_TRANSPARENT, HIDE, STORAGE_SESSION
+from utils.utils_config import FIG_CONFIG_WITH_DOWNLOAD, FIG_CONFIG_WITHOUT_DOWNLOAD, BG_TRANSPARENT, HIDE, STORAGE_SESSION
 
 pd.set_option('display.float_format', '{}'.format)
 
@@ -62,7 +62,7 @@ layout = html.Div(
                                     ),
                                     size='md',
                                     variant='unstyled',
-                                    style={'width': '10rem'},
+                                    style={'width': '12.5rem'},
                                     styles={
                                         'input': {
                                             'font-size': '1.5625rem',
@@ -313,7 +313,7 @@ def update_choropleth_fig(data, disorder_name, figure):
                 data_to_df,
                 color_scale=all_disorders_dataframes[disorder_name].color_scale
             ),
-            config=FIG_CONFIG,
+            config=FIG_CONFIG_WITHOUT_DOWNLOAD,
             id='choropleth-fig',
             className='graph-container',
             responsive=True
@@ -540,7 +540,7 @@ def update_heatmap_fig(filtered_data, switch_filter):
             entities=sorted_entities,
             grouping_field='Country' if grouping_field == 'Entity' else grouping_field
         ),
-        config=FIG_CONFIG
+        config=FIG_CONFIG_WITH_DOWNLOAD
     )
 
 
@@ -639,7 +639,7 @@ def update_sankey_fig(sankey_data, country_filter_selection, sankey_year, disord
         color_categories=['rgb(173, 216, 230)', 'rgb(255, 182, 193)'] if switcher else None
     )
 
-    return dcc.Graph(figure=fig, config=FIG_CONFIG, id='sankey-fig')
+    return dcc.Graph(figure=fig, config=FIG_CONFIG_WITH_DOWNLOAD, id='sankey-fig')
 
 
 # @callback(
