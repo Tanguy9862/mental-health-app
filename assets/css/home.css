@@ -1,4 +1,4 @@
-#disorder-fig .hoverlayer .bg {
-    rx: 4;
+#bubble-fig .hoverlayer .bg {
+    rx: 3;
     shape-rendering: auto;
 }
