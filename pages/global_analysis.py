@@ -1,3 +1,5 @@
+import pprint
+
 import dash
 import pandas as pd
 import dash_mantine_components as dmc
@@ -200,6 +202,7 @@ layout = html.Div(
                 )
             ],
             mt=35,
+            mb=100
         ),
         dcc.Store(id='disorder-data'),
         dcc.Store(id='average-prevalence-per-country'),
@@ -372,9 +375,10 @@ def update_selected_entities(
             # Delete continent from current_entities, last_entity and cache_continent:
             del current_entities[continent_to_remove[0]]
             last_entity = [
-                [country, continent] for country, continent in last_entity if continent != continent_to_remove[0]
+                [continent, country] for continent, country in last_entity if continent != continent_to_remove[0]
             ]
             cache_continent.remove(continent_to_remove[0])
+
         else:
             # Add new continent with associated countries
             disorder_df = all_disorders_dataframes[disorder_name].prevalence_by_country
@@ -419,6 +423,7 @@ def update_selected_entities(
             current_entities, last_entity, cache_continent = dict(), list(), list()
 
     selected_continent = cache_continent
+
     return current_entities, last_entity, cache_continent, selected_continent
 
 
@@ -539,7 +544,8 @@ def update_heatmap_fig(filtered_data, switch_filter):
             entities=sorted_entities,
             grouping_field='Country' if grouping_field == 'Entity' else grouping_field
         ),
-        config=FIG_CONFIG_WITH_DOWNLOAD
+        config=FIG_CONFIG_WITH_DOWNLOAD,
+        id='heatmap-fig'
     )
 
 
@@ -639,27 +645,6 @@ def update_sankey_fig(sankey_data, country_filter_selection, sankey_year, disord
     )
 
     return dcc.Graph(figure=fig, config=FIG_CONFIG_WITH_DOWNLOAD, id='sankey-fig')
-
-
-# @callback(
-#     Output('sankey-tooltip', 'show'),
-#     Output('sankey-tooltip', 'children'),
-#     Input('sankey-fig', 'hoverData'),
-#     prevent_initial_call=True
-# )
-# def update_sankey_tooltip(hover_data):
-#     if not hover_data:
-#         return no_update
-#
-#     print('hover data is')
-#     print(hover_data)
-#
-#     children = [
-#         html.P('hello')
-#     ]
-#
-#     return True, children
-
 
 
 @callback(
