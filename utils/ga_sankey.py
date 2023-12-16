@@ -17,7 +17,8 @@ def create_sankey(
         'target': [],
         'value': [],
         'label': [],
-        'color': []
+        'color': [],
+        'customdata': []
     }
     palette = colors.qualitative.Pastel2
 
@@ -43,13 +44,16 @@ def create_sankey(
     df_mean_sum_filtered_category_prevalence['TotalPrevalence'] = df_mean_sum_filtered_category_prevalence[
         filtered_categories].sum(axis=1)
     df_mean_sum_filtered_category_prevalence = df_mean_sum_filtered_category_prevalence.sort_values(
-        by=['Continent', 'MeanPrevalence'],
+        by=['Continent', 'GlobalPrevalence'],
         ascending=[True, False]
     )
 
-    df_mean_sum_filtered_category_prevalence['EstimatedAffected'] = (df_mean_sum_filtered_category_prevalence['GlobalPrevalence']/100) *\
-                                                                    df_mean_sum_filtered_category_prevalence['Population']
-    df_mean_sum_filtered_category_prevalence['EstimatedAffected'] = df_mean_sum_filtered_category_prevalence['EstimatedAffected'].round().astype(int)
+    df_mean_sum_filtered_category_prevalence['EstimatedAffected'] = (df_mean_sum_filtered_category_prevalence[
+                                                                         'GlobalPrevalence'] / 100) * \
+                                                                    df_mean_sum_filtered_category_prevalence[
+                                                                        'Population']
+    df_mean_sum_filtered_category_prevalence['EstimatedAffected'] = df_mean_sum_filtered_category_prevalence[
+        'EstimatedAffected'].round().astype(int)
 
     # Update categories with estimated affected people
     for index, row in df_mean_sum_filtered_category_prevalence.iterrows():
@@ -61,13 +65,14 @@ def create_sankey(
 
     if country_filter_selection == 'top-5':
         top_5 = df_mean_sum_filtered_category_prevalence.groupby('Continent').apply(
-            lambda x: x.nlargest(5, 'MeanPrevalence')).reset_index(drop=True)
-        max_prevalence_per_continent = top_5.groupby('Continent')['MeanPrevalence'].max()
+            lambda x: x.nlargest(5, 'GlobalPrevalence')).reset_index(drop=True)
+        max_prevalence_per_continent = top_5.groupby('Continent')['GlobalPrevalence'].max()
         df_with_max = top_5.merge(max_prevalence_per_continent.rename('MaxPrevalence'), on='Continent')
         df_mean_sum_filtered_category_prevalence = df_with_max.sort_values(
-            by=['MaxPrevalence', 'Continent', 'MeanPrevalence'],
+            by=['MaxPrevalence', 'Continent', 'GlobalPrevalence'],
             ascending=[False, True, False]
         )
+
 
     # Flow from continents to countries
     for _, row in df_mean_sum_filtered_category_prevalence.iterrows():
@@ -75,6 +80,7 @@ def create_sankey(
         data_sankey['target'].append(country_indices[row['Entity']])
         data_sankey['value'].append(row['EstimatedAffected'])
         data_sankey['color'].append(continent_to_color[row['Continent']])
+        data_sankey['customdata'].append([row['Continent'], row['Entity'], row['GlobalPrevalence']])
 
     # Flow from countries to age categories
     for _, row in df_mean_sum_filtered_category_prevalence.iterrows():
@@ -84,6 +90,7 @@ def create_sankey(
             data_sankey['target'].append(filtered_categories_indices[category])
             data_sankey['value'].append(row[category])
             data_sankey['color'].append(continent_to_color[row['Continent']])
+            data_sankey['customdata'].append([row['Continent'], row['Entity'], row['GlobalPrevalence']])
 
     # Colors for nodes
     node_colors = []
@@ -111,7 +118,12 @@ def create_sankey(
             source=data_sankey['source'],
             target=data_sankey['target'],
             value=data_sankey['value'],
-            color=data_sankey['color']
+            color=data_sankey['color'],
+            customdata=data_sankey['customdata'],
+            hovertemplate="""
+            <b>%{customdata[0]}:</b> %{customdata[1]} (%{customdata[2]:.2f}%)<br>
+             <i>%{value} individuals estimated to be affected</i><extra></extra>
+            """
         ),
     )])
 

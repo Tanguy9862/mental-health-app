@@ -48,6 +48,7 @@ continent_dict = {
     "AQ": "Antarctica"
 }
 
+
 def get_continent_name(continent_code: str) -> str:
     return continent_dict[continent_code]
 

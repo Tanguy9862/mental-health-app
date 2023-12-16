@@ -6,6 +6,7 @@ FIG_CONFIG_WITHOUT_DOWNLOAD = {
 }
 
 FIG_CONFIG_WITH_DOWNLOAD = {
+        # 'displayModeBar': False,
         'displaylogo': False,
         'modeBarButtonsToRemove': ['zoom2d', 'pan2d', 'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d',
                                    'autoScale2d', 'resetScale2d', 'hoverClosestCartesian',

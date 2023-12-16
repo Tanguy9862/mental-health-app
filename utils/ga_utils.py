@@ -2,7 +2,6 @@ import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 import numpy as np
 import dash_extensions as de
-import datetime
 
 from utils.utils_config import MAIN_TITLE_COLOR
 

@@ -122,12 +122,31 @@ tabs_sankey = html.Div(
                         we calculate the sum of prevalences for all categories.
                         
                         **Proportional Distribution:** We then distribute the estimated affected number 
-                          proportionally among the categories based on their share of the total prevalence.
+                        proportionally among the categories based on their share of the total prevalence.
                         
                         **Resulting Values:** The final values in each category reflect an estimated count of 
-                          affected individuals, proportionally adjusted to align with the total prevalence observed 
-                          in that country.
+                        affected individuals, proportionally adjusted to align with the total prevalence observed 
+                        in that country.
                         
+                        ## Understanding the Sankey Diagram Output
+                        
+                        -----
+                        
+                        In the **All** view of the Sankey diagram, the representation encompasses all countries within 
+                        a selected continent. This comprehensive display prioritizes the absolute number of individuals 
+                        affected by the mental health disorder. Countries that are higher up in the diagram indicate 
+                        a larger affected population. This view is particularly useful for understanding the total 
+                        impact of the disorder across each country, highlighting where the largest populations 
+                        in need of resources and attention are located.
+                        
+                        The **Top 5** view shifts the focus to the prevalence of the disorder, rather than its 
+                        absolute impact. In this mode, the diagram displays the top five countries with the 
+                        highest mean prevalence of the disorder within each continent. While the size of the 
+                        flows still represents the number of affected individuals, the selection of countries is 
+                        based on their relative prevalence rates. This approach offers a nuanced perspective, 
+                        highlighting countries where the disorder is most prevalent proportionally, which can be 
+                        particularly insightful for understanding the relative severity of the disorder in 
+                        different regions.
                         """
                     ],
                 )
