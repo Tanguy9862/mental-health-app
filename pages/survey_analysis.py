@@ -19,7 +19,11 @@ dash.register_page(
     __name__,
     path='/survey-analysis',
     order=3,
-    title='Mental Health - Survey Analysis'
+    title='Mental Health - Survey Analysis',
+    description="""
+    Analyze trends and patterns for various behaviors and attitudes associated with mental health.
+    """,
+    image='miniature.png'
 )
 
 layout = html.Div(
@@ -52,7 +56,7 @@ layout = html.Div(
                     [
                         dmc.Select(
                             id='sa-select-question',
-                            label='Select a question',
+                            label='Select a condition',
                             value=choice(all_questions),
                             data=sorted(
                                 [{'value': question, 'label': question} for question in all_questions],
@@ -93,7 +97,7 @@ layout = html.Div(
                         html.Div(id='question-title'),
                     ],
                     offsetLg=1,
-                    span='content'
+                    lg='content'
                 ),
                 dmc.Col(
                     [

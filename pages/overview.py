@@ -15,6 +15,12 @@ dash.register_page(
     path='/',
     order=0,
     title='Mental Health - Overview',
+    description="""
+    A comprehensive analysis of global mental health, focusing on the prevalence and impact of anxiety, depressive, 
+    bipolar, schizophrenia, and eating disorders. Explore data-driven insights into mental health trends and their 
+    effects on different demographics.
+    """,
+    image='miniature.png'
 )
 
 

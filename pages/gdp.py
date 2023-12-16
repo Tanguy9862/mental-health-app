@@ -18,7 +18,12 @@ dash.register_page(
     __name__,
     path='/disorder-gdp',
     order=2,
-    title='Mental Health - GDP Analysis'
+    title='Mental Health - GDP Analysis',
+    description="""
+    Examine the correlation between economic factors, such as GDP, and the prevalence of mental health disorders. 
+    Understand how economic development influences mental health across various regions
+    """,
+    image='miniature.png'
 )
 
 layout = html.Div(

@@ -38,7 +38,12 @@ dash.register_page(
     __name__,
     path='/global-analysis',
     order=1,
-    title='Mental Health - Prevalence Analysis'
+    title='Mental Health - Prevalence Analysis',
+    description="""
+    Discover in-depth analysis of mental health prevalence based on location, age, and gender. This interactive page 
+    allows exploration of mental health trends across countries, continents, and demographic groups.
+    """,
+    image='miniature.png'
 )
 
 layout = html.Div(

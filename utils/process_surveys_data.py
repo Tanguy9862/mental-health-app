@@ -28,7 +28,6 @@ def process_and_clean_survey_data():
     }, inplace=True)
     discomfort_df['Continent'] = discomfort_df['Code'].apply(country_code_to_continent_name)
 
-
     # FUND RESEARCH ON ANXIETY AND DEPRESSION PROCESSING
     fund_df = pd.read_csv(f'{DATA_PATH}/fund-research-anxiety-depression.csv')
     fund_df.rename(columns={
@@ -43,10 +42,6 @@ def process_and_clean_survey_data():
         'Population (historical estimates)',
         'GDP per capita, PPP (constant 2017 international $)'
     ])
-
-    # print('****NA****')
-    # rows_with_nan = fund_df[fund_df.isna().any(axis=1)]
-    # print(rows_with_nan)
 
     return approaches_df, discomfort_df, fund_df
 
