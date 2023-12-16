@@ -2,3 +2,18 @@
     rx: 3;
     shape-rendering: auto;
 }
+
+#country-rate .hoverlayer .bg {
+    rx: 3;
+    shape-rendering: auto;
+}
+
+#income-rate .hoverlayer .bg {
+    rx: 3;
+    shape-rendering: auto;
+}
+
+#heatmap-fig .hoverlayer .bg {
+    rx: 3;
+    shape-rendering: auto;
+}

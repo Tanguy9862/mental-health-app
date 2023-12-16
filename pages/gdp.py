@@ -7,11 +7,12 @@ from dash_iconify import DashIconify
 
 from utils.ga_utils import create_country_title, update_no_data
 from utils.process_data import all_disorders_dataframes
-from utils.utils_config import FIG_CONFIG_WITH_DOWNLOAD
+from utils.utils_config import FIG_CONFIG_WITH_DOWNLOAD, add_loading_overlay, HIDE, STORAGE_SESSION
 from utils.gdp_bubble import create_bubble
 from utils.gdp_utils import income_levels
 
-pd.set_option('display.max_columns', None)
+all_cols = all_disorders_dataframes['Anxiety'].prevalence_and_gdp.columns
+# pd.set_option('display.max_columns', None)
 
 dash.register_page(
     __name__,
@@ -48,7 +49,8 @@ layout = html.Div(
                                         },
                                         'item': {'font-size': '0.9rem'}
                                     },
-                                    persistence=True
+                                    persistence=True,
+                                    persistence_type=STORAGE_SESSION
                                 ),
                             ],
                             spacing=7
@@ -81,7 +83,7 @@ layout = html.Div(
                                             color='violet',
                                             id='switch-continent-incomes',
                                             persistence=True,
-                                            persistence_type='session',
+                                            persistence_type=STORAGE_SESSION,
                                         )
                                     ],
                                     label='Toggle to filter data by continents or income categories',
@@ -101,7 +103,20 @@ layout = html.Div(
             [
                 dmc.Col(
                     [
-                        dmc.Container(id='bubble-container', px=0, size='100%'),
+                        add_loading_overlay(
+                            elements=[
+                                html.Div(
+                                    dcc.Graph(
+                                        id='bubble-fig',
+                                        figure=create_bubble(
+                                            pd.DataFrame(columns=all_cols),
+                                            switcher=False
+                                        )
+                                    ),
+                                    id='bubble-container'
+                                )
+                            ]
+                        )
                     ],
                     offsetLg=1,
                     lg=10
@@ -148,7 +163,7 @@ def update_select_list_continent(disorder_name):
         placeholder='Select a continent..',
         id='gdp-select-continent',
         persistence=True,
-        persistence_type='session',
+        persistence_type=STORAGE_SESSION,
         data=all_continents,
         style={'width': '100%'},
         styles={
@@ -188,13 +203,7 @@ def update_bubble_fig(disorder_name: str, switcher: bool, selected_continents: l
         switcher=switcher
     )
 
-    return [
-        dcc.Loading(
-            dcc.Graph(id="bubble-fig", config=FIG_CONFIG_WITH_DOWNLOAD, figure=fig),
-            color='#967bb6',
-            type='circle'
-        )
-    ]
+    return dcc.Graph(id="bubble-fig", config=FIG_CONFIG_WITH_DOWNLOAD, figure=fig)
 
 
 @callback(

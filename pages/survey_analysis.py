@@ -8,7 +8,7 @@ from utils.ga_utils import create_country_title
 from utils.process_surveys_data import merged_survey_df
 from utils.sa_figures import create_bar_fig
 from utils.sa_utils import filter_on_continent, filter_on_entity
-from utils.utils_config import FIG_CONFIG_WITH_DOWNLOAD
+from utils.utils_config import FIG_CONFIG_WITH_DOWNLOAD, add_loading_overlay, HIDE, STORAGE_SESSION
 from utils.gdp_utils import income_levels
 
 basic_cols = ['Entity', 'Code', 'Year', 'Continent']
@@ -57,7 +57,9 @@ layout = html.Div(
                             data=sorted(
                                 [{'value': question, 'label': question} for question in all_questions],
                                 key=lambda x: x['label']
-                            )
+                            ),
+                            persistence=True,
+                            persistence_type=STORAGE_SESSION
 
                         )
                     ],
@@ -73,7 +75,9 @@ layout = html.Div(
                             data=sorted(
                                 [{'value': continent, 'label': continent} for continent in all_continents],
                                 key=lambda x: x['label']
-                            )
+                            ),
+                            persistence=True,
+                            persistence_type=STORAGE_SESSION
 
                         )
                     ],
@@ -105,7 +109,35 @@ layout = html.Div(
             [
                 dmc.Col(
                     [
-                        html.Div(id='fig-container'),
+                        dmc.Grid(
+                            [
+                                dmc.Col(
+                                    [
+                                        dmc.Stack(
+                                            [
+                                                dmc.Divider(label='Country Specific Rate'),
+                                                add_loading_overlay(id='country-fig-container')
+                                            ]
+                                        ),
+                                    ],
+                                    lg=5,
+                                ),
+                                dmc.Col(
+                                    [
+                                        dmc.Stack(
+                                            [
+                                                dmc.Divider(label='Income Specific Rate', labelPosition='right'),
+                                                add_loading_overlay(id='income-fig-container')
+                                            ]
+                                        )
+                                    ],
+                                    offsetLg=1,
+                                    lg=5
+                                )
+                            ],
+                            mt=35,
+                            mb=100
+                        )
                     ],
                     offsetLg=1,
                     lg=10
@@ -155,7 +187,8 @@ def update_question_title(question, continent):
 
 
 @callback(
-    Output('fig-container', 'children'),
+    Output('country-fig-container', 'children'),
+    Output('income-fig-container', 'children'),
     Input('sa-select-question', 'value'),
     Input('sa-select-continent', 'value'),
 )
@@ -187,37 +220,10 @@ def update_country_fig(question, continent):
         color_seq=px.colors.sequential.Teal
     )
 
-    return html.Div(
-        [
-
-            dmc.Grid(
-                [
-                    dmc.Col(
-                        [
-                            dmc.Stack(
-                                [
-                                    dmc.Divider(label='Country Specific Prevalence'),
-                                    dcc.Graph(figure=fig_country, config=FIG_CONFIG_WITH_DOWNLOAD)
-                                ]
-                            ),
-                        ],
-                        lg=5,
-                    ),
-                    dmc.Col(
-                        [
-                            dmc.Stack(
-                                [
-                                    dmc.Divider(label='Income Specific Prevalence', labelPosition='right'),
-                                    dcc.Graph(figure=fig_income, config=FIG_CONFIG_WITH_DOWNLOAD)
-                                ]
-                            )
-                        ],
-                        offsetLg=1,
-                        lg=5
-                    )
-                ],
-                mt=35,
-                mb=100
-            )
-        ]
+    country_graph_object = add_loading_overlay(
+        dcc.Graph(figure=fig_country, config=FIG_CONFIG_WITH_DOWNLOAD, id='country-rate')
     )
+
+    income_graph_object = dcc.Graph(figure=fig_income, config=FIG_CONFIG_WITH_DOWNLOAD, id='income-rate')
+
+    return country_graph_object, income_graph_object

@@ -16,7 +16,8 @@ from utils.ga_choropleth import create_choropleth_fig
 from utils.ga_heatmap import create_heatmap
 from utils.ga_sankey import create_sankey
 from utils.ga_tabs import tabs_heatmap, tabs_sankey
-from utils.utils_config import FIG_CONFIG_WITH_DOWNLOAD, FIG_CONFIG_WITHOUT_DOWNLOAD, BG_TRANSPARENT, HIDE, STORAGE_SESSION
+from utils.utils_config import FIG_CONFIG_WITH_DOWNLOAD, FIG_CONFIG_WITHOUT_DOWNLOAD, BG_TRANSPARENT, HIDE, \
+    STORAGE_SESSION, add_loading_overlay
 
 pd.set_option('display.float_format', '{}'.format)
 
@@ -37,7 +38,7 @@ dash.register_page(
     __name__,
     path='/global-analysis',
     order=1,
-    title='Mental Health - Analysis Dashboard'
+    title='Mental Health - Prevalence Analysis'
 )
 
 layout = html.Div(
@@ -175,7 +176,18 @@ layout = html.Div(
                                 dmc.FloatingTooltip(
                                     [
                                         dmc.Container(
-                                            [dcc.Graph(id='choropleth-fig', style={'display': 'none'})],
+                                            [
+                                                html.Div(
+                                                    [
+                                                        dmc.Center(
+                                                            [dmc.Loader(color='#967bb6')],
+                                                            style={'height': '100%'}
+                                                        )
+                                                    ],
+                                                    style={'height': '44vh'}
+                                                ),
+                                                dcc.Graph(id='choropleth-fig', style={'display': 'none'})
+                                            ],
                                             id='choropleth-container',
                                             px=0
                                         )
@@ -318,6 +330,7 @@ def update_choropleth_fig(data, disorder_name, figure):
             config=FIG_CONFIG_WITHOUT_DOWNLOAD,
             id='choropleth-fig',
             className='graph-container',
+            # clear_on_unhover=True,
             responsive=True
         ),
         dcc.Interval(id='choropleth-interval', interval=CHOROPLETH_INTERVAL),

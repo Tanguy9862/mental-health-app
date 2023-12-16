@@ -7,7 +7,8 @@ import dash_extensions as de
 
 from utils.overview_figures import disorder_bar_fig, graph_functions, prevalence_by_disorder
 from utils.overview_accordion import disorders_accordion
-from utils.utils_config import FIG_CONFIG_WITHOUT_DOWNLOAD, FIG_CONFIG_WITH_DOWNLOAD, BG_TRANSPARENT, MAIN_TITLE_COLOR
+from utils.utils_config import FIG_CONFIG_WITHOUT_DOWNLOAD, FIG_CONFIG_WITH_DOWNLOAD, BG_TRANSPARENT, MAIN_TITLE_COLOR, \
+    add_loading_overlay
 
 dash.register_page(
     __name__,
@@ -80,7 +81,12 @@ layout = dmc.NotificationsProvider(
                             [
                                 dmc.Container(id='estimate-container', px=0, children=[html.Div(id='group-estimate')]),
                                 dmc.FloatingTooltip(
-                                    [dcc.Graph(figure=disorder_bar_fig, config=FIG_CONFIG_WITH_DOWNLOAD, id='disorder-fig')],
+                                    [
+                                        add_loading_overlay(
+                                            elements=dcc.Graph(figure=disorder_bar_fig, config=FIG_CONFIG_WITH_DOWNLOAD,
+                                                               id='disorder-fig')
+                                        )
+                                    ],
                                     label=None,
                                     width=275,
                                     color=BG_TRANSPARENT,

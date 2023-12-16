@@ -1,3 +1,5 @@
+import dash_mantine_components as dmc
+
 # FIGURE:
 FIG_CONFIG_WITHOUT_DOWNLOAD = {
     'displayModeBar': False,
@@ -31,3 +33,14 @@ BG_TRANSPARENT = 'rgba(0,0,0,0)'
 HIDE = {'display': 'none'}
 MAIN_TITLE_COLOR = '#4e3a8e'
 STORAGE_SESSION = 'session'
+
+
+def add_loading_overlay(elements=None, id=''):
+    return dmc.LoadingOverlay(
+        children=elements,
+        loaderProps={'color': '#7159a3', 'variant': 'dots'},
+        overlayColor='#f2f2f2',
+        overlayOpacity=0.7,
+        radius=6,
+        id=id
+    )

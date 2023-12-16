@@ -2,12 +2,13 @@ from dash import html, dcc
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 
+from utils.utils_config import add_loading_overlay
+
 
 tabs_heatmap = html.Div(
     [
         dmc.Modal(
             id='data-modal-heatmap',
-            # padding='md',
             size='55%',
             styles={
                 'modal': {
@@ -83,7 +84,7 @@ tabs_heatmap = html.Div(
             mb='lg',
             position='center'
         ),
-        dmc.Container(id='heatmap-container', px=0),
+        add_loading_overlay(elements=dmc.Container(id='heatmap-container', px=0)),
     ]
 )
 
@@ -190,13 +191,6 @@ tabs_sankey = html.Div(
                         ),
                         dmc.Slider(
                             id='sankey-year-slider',
-                            # value=5,
-                            # min=1,
-                            # max=10,
-                            # minRange=1,
-                            # marks=[
-                            #     {'value': i, 'label': i} for i in range(min_year, max_year + 2, SLIDER_YEAR_INCREMENT)
-                            # ],
                             persistence=True,
                             persistence_type='session',
                             color='white',

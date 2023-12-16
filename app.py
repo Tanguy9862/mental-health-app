@@ -11,7 +11,8 @@ app = dash.Dash(
     __name__,
     use_pages=True,
     suppress_callback_exceptions=True,
-    update_title=None
+    update_title=None,
+    title='Mental Health Analysis'
 )
 
 server = app.server
@@ -63,8 +64,8 @@ app.layout = html.Div(
                     position='center'
                 )
             ],
-            mt=100,
-            height=50,
+            # mt=100,
+            height=40,
             fixed=True,
             style={'background-color': 'rgba(0,0,0,0)', 'border': 'none'}
         ),
