@@ -7,7 +7,7 @@ import dash_extensions as de
 
 from utils.overview_figures import disorder_bar_fig, graph_functions, prevalence_by_disorder
 from utils.overview_accordion import disorders_accordion
-from utils.utils_config import FIG_CONFIG_WITH_DOWNLOAD, BG_TRANSPARENT, MAIN_TITLE_COLOR
+from utils.utils_config import FIG_CONFIG_WITHOUT_DOWNLOAD, FIG_CONFIG_WITH_DOWNLOAD, BG_TRANSPARENT, MAIN_TITLE_COLOR
 
 dash.register_page(
     __name__,
@@ -116,7 +116,7 @@ def update_tooltip(fig_data):
         return dmc.Container(
             [
                 dmc.Text(f'{label} Disorder Prevalence (%)', italic=True, size='xs', color='white', mb=5),
-                dcc.Graph(figure=graph_functions[label]())
+                dcc.Graph(figure=graph_functions[label](), config=FIG_CONFIG_WITHOUT_DOWNLOAD)
             ],
             px=0
         ), 'rgba(11, 6, 81, 0.8)', estimate_case(

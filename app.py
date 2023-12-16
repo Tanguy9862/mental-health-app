@@ -63,7 +63,8 @@ app.layout = html.Div(
                     position='center'
                 )
             ],
-            height=70,
+            mt=100,
+            height=50,
             fixed=True,
             style={'background-color': 'rgba(0,0,0,0)', 'border': 'none'}
         ),

@@ -200,7 +200,6 @@ layout = html.Div(
                 )
             ],
             mt=35,
-            mb=100
         ),
         dcc.Store(id='disorder-data'),
         dcc.Store(id='average-prevalence-per-country'),

@@ -26,13 +26,13 @@ def get_country_continent_name(figure_data):
         return country_path[0], country_path[-1]
 
 
-def create_country_title(text, id='', animation=None):
+def create_country_title(text, id='', animation=None, order=2):
     return dmc.Title(
         text,
         id=id,
         color=MAIN_TITLE_COLOR,
         align='justify',
-        order=2,
+        order=order,
         className=animation
     )
 

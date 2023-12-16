@@ -27,9 +27,9 @@ def create_bubble(df, switcher):
         y='Prevalence',
         animation_frame='Year',
         animation_group='Entity',
-        size='GDP_per_capita_PPP_2017',
+        size='Prevalence',
         color=color_col,
-        color_discrete_sequence=colors.qualitative.Bold,
+        color_discrete_sequence=colors.qualitative.Safe,
         custom_data=custom_data
     )
 

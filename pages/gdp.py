@@ -5,29 +5,11 @@ import plotly.express as px
 from dash import html, dcc, Input, Output, State, callback
 from dash_iconify import DashIconify
 
-from utils.ga_utils import create_country_title
+from utils.ga_utils import create_country_title, update_no_data
 from utils.process_data import all_disorders_dataframes
 from utils.utils_config import FIG_CONFIG_WITH_DOWNLOAD
 from utils.gdp_bubble import create_bubble
-
-anxiety_gdp = all_disorders_dataframes['Anxiety'].prevalence_and_gdp
-
-income_levels = [
-    'Low-income countries',
-    'Lower-middle-income countries',
-    'Upper-middle-income countries',
-    'High-income countries'
-]
-
-###################
-anxiety_gdp_country = anxiety_gdp[anxiety_gdp["Continent"] != "Unknown"].sort_values(by="Year")
-anxiety_gdp_groups = anxiety_gdp[anxiety_gdp["Continent"] == "Unknown"].sort_values(by="Year")
-
-depressive_gdp = all_disorders_dataframes['Depressive'].prevalence_and_gdp
-depressive_gdp_country = depressive_gdp[depressive_gdp["Continent"] != "Unknown"].sort_values(by="Year")
-depressive_gdp_groups = depressive_gdp[depressive_gdp["Continent"] == "Unknown"].sort_values(by="Year")
-
-pop_per_country = anxiety_gdp[['Entity', 'Population (historical estimates)']]
+from utils.gdp_utils import income_levels
 
 pd.set_option('display.max_columns', None)
 
@@ -90,14 +72,21 @@ layout = html.Div(
                     [
                         dmc.Center(
                             [
-                                dmc.Switch(
-                                    onLabel=DashIconify(icon='fluent-mdl2:world', height=15),
-                                    offLabel=DashIconify(icon='grommet-icons:money', height=15),
-                                    size='md',
-                                    color='violet',
-                                    id='switch-continent-incomes',
-                                    persistence=True,
-                                    persistence_type='session',
+                                dmc.Tooltip(
+                                    [
+                                        dmc.Switch(
+                                            onLabel=DashIconify(icon='fluent-mdl2:world', height=15),
+                                            offLabel=DashIconify(icon='grommet-icons:money', height=15),
+                                            size='md',
+                                            color='violet',
+                                            id='switch-continent-incomes',
+                                            persistence=True,
+                                            persistence_type='session',
+                                        )
+                                    ],
+                                    label='Toggle to filter data by continents or income categories',
+                                    transition='fade',
+                                    withArrow=True
                                 )
                             ]
                         )
@@ -112,10 +101,7 @@ layout = html.Div(
             [
                 dmc.Col(
                     [
-                        dcc.Loading(
-                            dcc.Graph(id="bubble-fig", config=FIG_CONFIG_WITH_DOWNLOAD),
-                            color='#967bb6',
-                            type='circle')
+                        dmc.Container(id='bubble-container', px=0, size='100%'),
                     ],
                     offsetLg=1,
                     lg=10
@@ -134,7 +120,8 @@ layout = html.Div(
                     lg=10
                 )
             ],
-            mt='lg'
+            mt='lg',
+            mb=125
         )
     ],
     id='gdp-container',
@@ -147,12 +134,11 @@ layout = html.Div(
     Input('gdp-select-disease', 'value')
 )
 def update_select_list_continent(disorder_name):
-
     all_entities = sorted([
-            {'value': continent, 'label': continent}
-            for continent in all_disorders_dataframes[disorder_name].prevalence_by_country['Continent'].unique()
-            if continent != 'Unknown'
-        ], key=lambda x: x['value'])
+        {'value': continent, 'label': continent}
+        for continent in all_disorders_dataframes[disorder_name].prevalence_by_country['Continent'].unique()
+        if continent != 'Unknown'
+    ], key=lambda x: x['value'])
 
     all_continents = list(set([continent for entity in all_entities for continent in entity.values()]))
 
@@ -178,7 +164,7 @@ def update_select_list_continent(disorder_name):
 
 
 @callback(
-    Output('bubble-fig', 'figure'),
+    Output('bubble-container', 'children'),
     Input('gdp-select-disease', 'value'),
     Input('switch-continent-incomes', 'checked'),
     Input('gdp-select-continent', 'value'),
@@ -193,12 +179,22 @@ def update_bubble_fig(disorder_name: str, switcher: bool, selected_continents: l
     else:
         df = df.query("Continent != 'Unknown' and Continent in @selected_continents")
 
+    is_df_empty = df.empty
+    if is_df_empty:
+        return update_no_data(text='Please select continents from the dropdown list to display data.')
+
     fig = create_bubble(
         df=df,
         switcher=switcher
     )
 
-    return fig
+    return [
+        dcc.Loading(
+            dcc.Graph(id="bubble-fig", config=FIG_CONFIG_WITH_DOWNLOAD, figure=fig),
+            color='#967bb6',
+            type='circle'
+        )
+    ]
 
 
 @callback(
