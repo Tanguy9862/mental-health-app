@@ -1,5 +1,5 @@
 import dash
-from dash import dcc, html, callback, Output, Input, State
+from dash import dcc, html, Output, Input, State, clientside_callback, ClientsideFunction
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 
@@ -9,7 +9,7 @@ CONTACT_ICON_WIDTH = 30
 
 def modal_data_source():
 
-    return  dmc.Modal(
+    return dmc.Modal(
             id='modal-data-source',
             size='55%',
             styles={
@@ -97,13 +97,11 @@ header = html.Div(
 )
 
 
-@callback(
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='toggle_modal_data_source'),
     Output('modal-data-source', 'opened'),
     Input('about-data-source', 'n_clicks'),
-    State('modal-data-source', 'opened'),
-    prevent_initial_call=True
+    State('modal-data-source', 'opened')
 )
-def toggle_modal_sankey(_, opened):
-    return not opened
 
 

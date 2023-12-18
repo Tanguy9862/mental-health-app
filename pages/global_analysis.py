@@ -1,11 +1,9 @@
-import pprint
-
 import dash
 import pandas as pd
 import dash_mantine_components as dmc
-import dash_extensions as de
 import plotly.graph_objects as go
-from dash import html, dcc, callback, Input, Output, State, clientside_callback, no_update, Patch, ctx, ALL, MATCH
+from dash import html, dcc, callback, Input, Output, State, clientside_callback, no_update, Patch, ctx, \
+    ClientsideFunction
 from dash.exceptions import PreventUpdate
 from dash_iconify import DashIconify
 
@@ -402,7 +400,8 @@ def update_selected_entities(
             disorder_df = all_disorders_dataframes[disorder_name].prevalence_by_country
 
             for continent in selected_continent:
-                disorder_df_filtered = disorder_df.query('Continent in @continent')[['Entity', 'Continent']].drop_duplicates()
+                disorder_df_filtered = disorder_df.query('Continent in @continent')[
+                    ['Entity', 'Continent']].drop_duplicates()
 
                 for i, row in enumerate(disorder_df_filtered.iterrows()):
                     continent, country = row[1]['Continent'], row[1]['Entity']
@@ -555,16 +554,20 @@ def update_heatmap_fig(filtered_data, switch_filter):
     df_pivot = filtered_df.pivot(index=grouping_field, columns='Year', values='Value')
     df_normalized = df_pivot.apply(lambda x: (x - x.min()) / (x.max() - x.min()), axis=1).reindex(sorted_entities)
 
-    return dcc.Graph(
-        figure=create_heatmap(
-            df=df_normalized,
-            disorder_name=disorder_name,
-            entities=sorted_entities,
-            grouping_field='Country' if grouping_field == 'Entity' else grouping_field
-        ),
-        config=FIG_CONFIG_WITH_DOWNLOAD,
-        id='heatmap-fig'
+    heatmap_graph_object = add_loading_overlay(
+        elements=dcc.Graph(
+            figure=create_heatmap(
+                df=df_normalized,
+                disorder_name=disorder_name,
+                entities=sorted_entities,
+                grouping_field='Country' if grouping_field == 'Entity' else grouping_field
+            ),
+            config=FIG_CONFIG_WITH_DOWNLOAD,
+            id='heatmap-fig'
+        )
     )
+
+    return heatmap_graph_object
 
 
 @callback(
@@ -576,8 +579,6 @@ def update_heatmap_fig(filtered_data, switch_filter):
     prevent_initial_call=True
 )
 def update_sankey_data(disorder_name, entities, year_range, switcher):
-
-    # print('****UPDATE SANKEY DATA TRIGGERED***')
     all_countries = [country for sublist in entities.values() for country in sublist]
 
     if not all_countries or (not switcher and disorder_name == 'Eating'):
@@ -595,8 +596,6 @@ def update_sankey_data(disorder_name, entities, year_range, switcher):
         year_range=year_range
     )
 
-    # print(filtered_df)
-
     return filtered_df.to_dict('records')
 
 
@@ -611,7 +610,6 @@ def update_sankey_data(disorder_name, entities, year_range, switcher):
     prevent_initial_call=True
 )
 def update_sankey_fig(sankey_data, country_filter_selection, sankey_year, disorder_name, switcher, entities):
-
     if not sankey_data and not switcher and disorder_name == 'Eating':
         return update_no_data(
             text='Unfortunately, there is no available age category data for eating disorders at this time'
@@ -662,7 +660,7 @@ def update_sankey_fig(sankey_data, country_filter_selection, sankey_year, disord
         color_categories=['rgb(173, 216, 230)', 'rgb(255, 182, 193)'] if switcher else None
     )
 
-    return dcc.Graph(figure=fig, config=FIG_CONFIG_WITH_DOWNLOAD, id='sankey-fig')
+    return add_loading_overlay(dcc.Graph(figure=fig, config=FIG_CONFIG_WITH_DOWNLOAD, id='sankey-fig'))
 
 
 @callback(
@@ -675,7 +673,6 @@ def update_sankey_fig(sankey_data, country_filter_selection, sankey_year, disord
     prevent_initial_call=True
 )
 def update_sankey_year_slider(sankey_data):
-
     if sankey_data:
         df = pd.DataFrame(sankey_data)
         min_year, max_year = df['Year'].min(), df['Year'].max()
@@ -694,56 +691,6 @@ def update_sankey_year_slider(sankey_data):
 
 
 @callback(
-    Output('sankey-interval', 'max_intervals'),
-    Output('play-sankey-animation', 'n_clicks'),
-    Input('play-sankey-animation', 'n_clicks'),
-    Input('sankey-interval', 'n_intervals'),
-    Input('sankey-data', 'data'),
-    State('sankey-year-slider', 'value'),
-    State('sankey-year-slider', 'max'),
-    State('play-sankey-animation', 'n_clicks'),
-    prevent_initial_call=True
-)
-def toggle_sankey_interval(n_btn, _, sankey_data, slider_value, value_max, current_n_clicks):
-
-    if not sankey_data:
-        return 0, no_update
-
-    input_id = ctx.triggered_id
-
-    # Click on btn
-    if input_id == 'play-sankey-animation':
-        if n_btn % 2:
-            return -1, no_update
-        else:
-            return 0, no_update
-    # Triggered by interval increment
-    elif input_id == 'sankey-interval':
-        if slider_value == value_max:
-            return 0, current_n_clicks + 1
-        else:
-            return -1, no_update
-
-    raise PreventUpdate
-
-
-@callback(
-    Output('sankey-year-slider', 'value', allow_duplicate=True),
-    Input('sankey-interval', 'n_intervals'),
-    State('sankey-year-slider', 'value'),
-    State('sankey-year-slider', 'max'),
-    State('sankey-year-slider', 'min'),
-    prevent_initial_call=True
-)
-def toggle_animation_sankey_slider(_, current_slider_value, max_value, min_value):
-
-    if current_slider_value < max_value:
-        return current_slider_value + 1
-
-    return min_value
-
-
-@callback(
     Output('switch-country-continent', 'disabled'),
     Output('switch-age-sex', 'disabled'),
     Input('selected-entities', 'data'),
@@ -755,36 +702,25 @@ def update_state_switcher(data):
     return False, False
 
 
-@callback(
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='toggle_modal_heatmap'),
     Output('data-modal-heatmap', 'opened'),
     Input('about-data-management-heatmap', 'n_clicks'),
-    State('data-modal-heatmap', 'opened'),
-    prevent_initial_call=True
+    State('data-modal-heatmap', 'opened')
 )
-def toggle_modal_heatmap(_, opened):
-    return not opened
 
-
-@callback(
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='toggle_modal_sankey'),
     Output('data-modal-sankey', 'opened'),
     Input('about-data-management-sankey', 'n_clicks'),
-    State('data-modal-sankey', 'opened'),
-    prevent_initial_call=True
+    State('data-modal-sankey', 'opened')
 )
-def toggle_modal_sankey(_, opened):
-    return not opened
 
-
-@callback(
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='stop_animate_choropleth'),
     Output('choropleth-interval', 'max_intervals'),
-    Input('stop-interval', 'n_clicks'),
-    prevent_initial_call=True
+    Input('stop-interval', 'n_clicks')
 )
-def stop_animate_choropleth(n):
-    if n % 2:
-        return 0
-    return -1
-
 
 clientside_callback(
     """

@@ -9,7 +9,7 @@ def create_bubble(df, switcher):
     step_x = 5000
     step_y = 1
 
-    max_x_range = [df['GDP_per_capita_PPP_2017'].min() - step_x, df['GDP_per_capita_PPP_2017'].max() + step_x]
+    max_x_range = [df['GDP'].min() - step_x, df['GDP'].max() + step_x]
     max_y_range = [df['Prevalence'].min() - step_y, df['Prevalence'].max() + step_y]
 
     if switcher:
@@ -23,7 +23,7 @@ def create_bubble(df, switcher):
 
     fig = px.scatter(
         df,
-        x='GDP_per_capita_PPP_2017',
+        x='GDP',
         y='Prevalence',
         animation_frame='Year',
         animation_group='Entity',

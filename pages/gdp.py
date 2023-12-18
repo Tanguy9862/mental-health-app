@@ -2,7 +2,7 @@ import dash
 import dash_mantine_components as dmc
 import pandas as pd
 import plotly.express as px
-from dash import html, dcc, Input, Output, State, callback
+from dash import html, dcc, Input, Output, State, callback, ClientsideFunction, clientside_callback
 from dash_iconify import DashIconify
 
 from utils.ga_utils import create_country_title, update_no_data
@@ -211,12 +211,8 @@ def update_bubble_fig(disorder_name: str, switcher: bool, selected_continents: l
     return dcc.Graph(id="bubble-fig", config=FIG_CONFIG_WITH_DOWNLOAD, figure=fig)
 
 
-@callback(
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='update_disabled_state_select_continent'),
     Output('gdp-select-continent', 'disabled'),
-    Input('switch-continent-incomes', 'checked'),
-    prevent_initial_call=True
+    Input('switch-continent-incomes', 'checked')
 )
-def update_disabled_state_select_continent(checked):
-    if checked:
-        return True
-    return False

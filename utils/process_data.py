@@ -74,8 +74,8 @@ def process_general_data(file_path, disorder_name):
 
 def process_gdp_data(file_path, disorder_name=None):
     df = pd.read_csv(file_path)
-    df.rename(columns={df.columns[3]: 'Prevalence', df.columns[4]: 'GDP_per_capita_PPP_2017'}, inplace=True)
-    df = df.dropna(subset=['Prevalence', 'GDP_per_capita_PPP_2017'])
+    df.rename(columns={df.columns[3]: 'Prevalence', df.columns[4]: 'GDP'}, inplace=True)
+    df = df.dropna(subset=['Prevalence', 'GDP'])
     df['Continent'] = df['Code'].apply(country_code_to_continent_name)
     return df
 

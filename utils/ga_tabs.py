@@ -176,19 +176,10 @@ tabs_sankey = html.Div(
                     mt='lg',
                     position='center'
                 ),
-                dmc.Container(id='sankey-container', px=0, mt='xl'),
+                add_loading_overlay(dmc.Container(id='sankey-container', px=0, mt='xl')),
                 dcc.Tooltip(id='sankey-tooltip', background_color='black'),
-                dcc.Interval(id='sankey-interval', interval=1000, max_intervals=0),
-                dmc.Group(
+                dmc.Center(
                     [
-                        dmc.ActionIcon(
-                            [
-                                DashIconify(icon='akar-icons:play', width=30, color='#967bb6'),
-                            ],
-                            n_clicks=0,
-                            variant='transparent',
-                            id='play-sankey-animation'
-                        ),
                         dmc.Slider(
                             id='sankey-year-slider',
                             persistence=True,
@@ -205,7 +196,6 @@ tabs_sankey = html.Div(
                         ),
                     ],
                     mt='lg',
-                    position='center'
                 ),
                 dmc.Divider(label='Country Display Preferences', mt=75),
                 dmc.RadioGroup(
