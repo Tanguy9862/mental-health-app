@@ -1,5 +1,5 @@
 import dash
-from dash import html, dcc, callback, Input, Output, State, ctx, no_update, clientside_callback
+from dash import html, dcc, callback, Input, Output, State, ctx, no_update, clientside_callback, ClientsideFunction
 from dash_iconify import DashIconify
 from dash.exceptions import PreventUpdate
 import dash_mantine_components as dmc
@@ -86,18 +86,19 @@ layout = dmc.NotificationsProvider(
                         dmc.Stack(
                             [
                                 dmc.Container(id='estimate-container', px=0, children=[html.Div(id='group-estimate')]),
-                                dmc.FloatingTooltip(
-                                    [
-                                        add_loading_overlay(
-                                            elements=dcc.Graph(figure=disorder_bar_fig, config=FIG_CONFIG_WITH_DOWNLOAD,
-                                                               id='disorder-fig')
-                                        )
-                                    ],
-                                    label=None,
-                                    width=275,
-                                    color=BG_TRANSPARENT,
-                                    id='fig-tooltip',
-                                ),
+                                dcc.Graph(figure=disorder_bar_fig, config=FIG_CONFIG_WITH_DOWNLOAD,
+                                          id='disorder-fig', clear_on_unhover=True),
+                                dcc.Tooltip(
+                                    id='tooltip-disorder-fig',
+                                    direction='bottom',
+                                    background_color='rgba(11, 6, 81, 0.8)',
+                                    border_color='rgba(11, 6, 81, 0.8)',
+                                    style={
+                                        'border-radius': '4px',
+                                        'color': 'white',
+                                        'font-family': 'Helvetica, Arial, sans-serif'
+                                    }
+                                )
                             ],
                             id='right-container',
                             align='center'
@@ -116,29 +117,42 @@ layout = dmc.NotificationsProvider(
 
 
 @callback(
-    Output('fig-tooltip', 'label'),
-    Output('fig-tooltip', 'color'),
+    Output('tooltip-disorder-fig', 'show'),
+    Output('tooltip-disorder-fig', 'bbox'),
+    Output('tooltip-disorder-fig', 'children'),
     Output('estimate-container', 'children'),
     Input('disorder-fig', 'hoverData'),
+    State('estimate-container', 'children')
 )
-def update_tooltip(fig_data):
+def update_disorder_tooltip(hover_data, current_estimated_container):
 
-    if fig_data:
-        label = fig_data['points'][0]['label']
-        return dmc.Container(
+    if hover_data:
+        bbox = hover_data['points'][0]["bbox"]
+        label = hover_data['points'][0]['label']
+
+        children = dmc.Container(
             [
                 dmc.Text(f'{label} Disorder Prevalence (%)', italic=True, size='xs', color='white', mb=5),
                 dcc.Graph(figure=graph_functions[label](), config=FIG_CONFIG_WITHOUT_DOWNLOAD)
             ],
             px=0
-        ), 'rgba(11, 6, 81, 0.8)', estimate_case(
+        )
+
+        disorder_estimated_case = estimate_case(
             prevalence_by_disorder.query('Disorder == @label')['EstimatedPeopleAffected'].iloc[0], label
         )
-    else:
-        return no_update, no_update, estimate_case(
+
+        return True, bbox, children, disorder_estimated_case
+
+    if not current_estimated_container[0]['props']['children']:
+        disorder_estimated_case = estimate_case(
             estimate=prevalence_by_disorder.query("Disorder == 'Anxiety'")['EstimatedPeopleAffected'].iloc[0],
             disorder_name='Anxiety'
         )
+    else:
+        disorder_estimated_case = current_estimated_container
+
+    return False, no_update, no_update, disorder_estimated_case
 
 
 @callback(
@@ -164,11 +178,9 @@ def show_notifications(_):
     ]
 
 
-@callback(
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='update_estimate_animation'),
     Output('group-estimate', 'className'),
     Input('disorder-fig', 'hoverData'),
-    prevent_initial_call=True
 )
-def toggle_animation_estimate_case(_):
-    return 'animate__animated animate__pulse animate__slow'
 

@@ -26,6 +26,9 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         },
         update_disabled_state_select_continent: function(checked) {
             return checked;
+        },
+        update_estimate_animation: function(data) {
+            return "animate__animated animate__pulse";
         }
     }
 });

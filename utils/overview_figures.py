@@ -49,23 +49,19 @@ disorder_bar_fig.update_layout(
     paper_bgcolor=BG_TRANSPARENT,
     bargap=0.2,
     showlegend=False,
-    # hovermode='x unified',
-    hoverlabel=HOVERLABEL_TEMPLATE,
+    # hoverlabel=HOVERLABEL_TEMPLATE,
     margin=WITH_PADDING,
     coloraxis_showscale=False,
     yaxis=dict(
-        # showspikes=False,
         showgrid=False,
         zeroline=False,
         color=FONT_COLOR,
-        # tickprefix='Prevalence: ',
         visible=False,
         title=None
     ),
     xaxis=dict(
         categoryorder='total descending',
         showgrid=False,
-        # showspikes=False,
         zeroline=False,
         title=dict(
             text='<i>Average Worldwide Prevalence Rates of Mental Health Conditions</i>',
