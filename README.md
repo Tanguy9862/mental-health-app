@@ -1,4 +1,4 @@
-### README Draft for the Mental Health Dash App
+### README Mental Health Interactive App
 
 ---
 
