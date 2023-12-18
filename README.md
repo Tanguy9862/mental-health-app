@@ -11,10 +11,10 @@ The Mental Health App is an interactive platform that provides a comprehensive a
   <img src="https://github.com/Tanguy9862/mental-health-app/blob/master/assets/screenshots/overview.png" width="500px" />
 </a>
 <a href="https://github.com/Tanguy9862/mental-health-app/blob/master/assets/screenshots/global_analysis.png">
-  <img src="https://github.com/Tanguy9862/mental-health-app/blob/master/assets/screenshots/global_analysis.png" width="150px" />
+  <img src="https://github.com/Tanguy9862/mental-health-app/blob/master/assets/screenshots/global_analysis.png" width="135px" />
 </a>
 <a href="https://github.com/Tanguy9862/mental-health-app/blob/master/assets/screenshots/survey.png">
-  <img src="https://github.com/Tanguy9862/mental-health-app/blob/master/assets/screenshots/survey.png" width="150px" />
+  <img src="https://github.com/Tanguy9862/mental-health-app/blob/master/assets/screenshots/survey.png" width="135px" />
 </a>
 
 ## Features
